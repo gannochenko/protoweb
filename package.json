@@ -11,5 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "protoc-gen-ts": "^0.8.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5"
   }
 }

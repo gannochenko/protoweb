@@ -2,7 +2,19 @@
 # yarn lockfile v1
 
 
+"@types/node@^22.10.5":
+  version "22.10.5"
+  resolved "https://registry.npmjs.org/@types/node/-/node-22.10.5.tgz"
+  integrity sha512-F8Q+SeGimwOo86fiovQh8qiXfFEh2/ocYv7tU5pJ3EXMSSxk1Joj5wefpFK2fHTf/N6HKGSxIDBT9f3gCxXPkQ==
+  dependencies:
+    undici-types "~6.20.0"
+
 protoc-gen-ts@^0.8.7:
   version "0.8.7"
-  resolved "https://registry.yarnpkg.com/protoc-gen-ts/-/protoc-gen-ts-0.8.7.tgz#63e4d9af2ad30b753acf6f739323d01fc9f80b52"
+  resolved "https://registry.npmjs.org/protoc-gen-ts/-/protoc-gen-ts-0.8.7.tgz"
   integrity sha512-jr4VJey2J9LVYCV7EVyVe53g1VMw28cCmYJhBe5e3YX5wiyiDwgxWxeDf9oTqAe4P1bN/YGAkW2jhlH8LohwiQ==
+
+undici-types@~6.20.0:
+  version "6.20.0"
+  resolved "https://registry.npmjs.org/undici-types/-/undici-types-6.20.0.tgz"
+  integrity sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==
