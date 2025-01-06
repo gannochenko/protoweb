@@ -1,0 +1,88 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Environment variables
+.env
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.esm-cache/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Debug files
+*.log
+*.tsbuildinfo
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Lint and formatting cache
+.eslintcache
+.prettiercache
+
+# TypeScript
+*.d.ts
+*.d.ts.map
+
+# Optional npm cache directory
+.npm
+
+# Yarn
+.yarn/
+.pnp.*
+.yarnrc.yml
+
+# Parcel
+.cache/
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Generated files
+*.gz
+*.tgz
+*.zip
+
+# Git-specific files
+.git/
+.gitignore.lock
+
+.idea
