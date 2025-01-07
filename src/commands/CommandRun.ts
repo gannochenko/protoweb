@@ -1,6 +1,5 @@
 import { Command as CommanderCommand } from 'commander';
 import inquirer from 'inquirer';
-// import {execa} from 'execa';
 import debug from 'debug';
 import {
     ActionCallback,
@@ -9,6 +8,7 @@ import {
     Implements,
 } from './type';
 import {Application} from '../lib/application';
+import {runCommand} from "../lib/exec";
 
 const d = debug('run');
 
@@ -57,11 +57,11 @@ export class CommandRun {
 
         console.log('Executing command "run"');
 
-        // const result = await execa('ls', ['-l'], {
-        //     cwd: process.cwd(),
-        // });
+        const result = await runCommand('ls', ['-l'], {
+            cwd: process.cwd(),
+        });
 
-        // console.log(result);
+        console.log(result);
 
         d('Executed successfully');
     }
