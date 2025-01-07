@@ -12,26 +12,33 @@ import {runCommand} from "../lib/exec";
 
 const d = debug('run');
 
+type Options = {
+  input: string;
+  output: string;
+};
+
 @Implements<CommandProcessor>()
-export class CommandRun {
+export class CommandBuild {
     public static attach(
         program: CommanderCommand,
         actionCallback: ActionCallback,
     ) {
         program
-            .command('run [something]')
-            .alias('r')
-            .description('Run something')
-            .option('-y, --yes', 'Use the default')
-            .action((something: string, command: CommanderCommand) => {
-                console.log(command);
+            .command('build')
+            .alias('b')
+            .description('build proto files')
+            .requiredOption('-i, --input <folder>', 'folder where the proto files are kept')
+            .requiredOption('-o, --output <folder>', 'folder where the compiled files must be created')
+            // .option('-y, --yes', 'Use the default')
+            .action((options: Options, command: CommanderCommand) => {
+                console.log(options);
 
                 return actionCallback({
                     command: this,
                     arguments: {
-                        something,
-                        // @ts-expect-error fofofo
-                        yes: command.yes,
+                        // something,
+                        // // @ts-expect-error fofofo
+                        // yes: command.yes,
                     },
                 })
             });
