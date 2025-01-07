@@ -5,7 +5,7 @@ interface CommandResult {
     stderr: string;
 }
 
-export  function runCommand(
+export function runCommand(
     command: string,
     args: readonly string[],
     options: SpawnOptions
@@ -32,6 +32,32 @@ export  function runCommand(
         });
 
         child.on('error', (error: Error) => {
+            reject(error);
+        });
+    });
+}
+
+export function isCommandAvailable(command: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        const process = spawn('which', [command]);
+
+        process.stdout.on('data', (data: Buffer) => {
+            if (data.toString().trim()) {
+                resolve(true); // Command is available
+            }
+        });
+
+        process.stderr.on('data', (data: Buffer) => {
+            reject(new Error(`Error checking command: ${data.toString()}`));
+        });
+
+        process.on('close', (code: number) => {
+            if (code !== 0) {
+                resolve(false); // Command is not available
+            }
+        });
+
+        process.on('error', (error: Error) => {
             reject(error);
         });
     });
