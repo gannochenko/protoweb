@@ -54,7 +54,7 @@ export class Application {
         program
             .name('protoweb')
             .version(await this.getVersion(), '-v, --version', 'output the current version')
-            .description('ProtoWeb: a new fancy application')
+            .description('ProtoWeb: compile proto files to code usable in browsers')
             .on('--help', () => {
                 console.log(`
 ✉️  Contact author: https://www.linkedin.com/in/gannochenko/
