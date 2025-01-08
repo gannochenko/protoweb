@@ -1,1 +1,1 @@
-yarn start build -i /Users/s.gannochenko/proj/pocs-demos-katas/faceblur/protobuf/ -o ./generated
+yarn start build -i /Users/s.gannochenko/proj/pocs-demos-katas/faceblur/protobuf/ -o /Users/s.gannochenko/proj/pocs-demos-katas/faceblur/apps/dashboard/src/services2 -t /Users/s.gannochenko/proj/protoweb/src/templates/fetchAlt.ts

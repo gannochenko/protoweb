@@ -33,9 +33,9 @@ export class RC {
                 this.config = await import(rcFile);
             } catch(e) {
                 console.error(
-                    `Was not able to import the RC file located at: ${rcFile}: ${e.message}`,
+                    `Was not able to import the RC file located at: ${rcFile}: ${(e as Error).message}`,
                 );
-                d(e.stack);
+                d((e as Error).stack);
                 return defaultSettings;
             }
         }
