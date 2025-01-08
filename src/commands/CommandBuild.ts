@@ -132,7 +132,13 @@ export class CommandBuild {
                 // @ts-ignore
                 const result = findServiceDefinitions(ast.root, services);
                 if (result.length) {
-                    console.log("Services found in: "+filePath);
+                    result.forEach(service => {
+                        console.log(`👉 ${filePath} => ${service.name}`);
+                        Object.keys(service.methods).forEach(methodName => {
+                            const method = service.methods[methodName];
+                            console.log(`   ✅ ${method.name}`);
+                        });
+                    });
 
                     // match the file
                     const relativePath = filePath.replace(args.input, "").replace(".proto", ".ts");

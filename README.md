@@ -80,8 +80,8 @@ Definitions written manually can be an option, but as the project grows, it will
 AI is certainly an option too, but not easily applicable when running inside CI/CD pipleines (even though it is possible).
 
 While _Connect.build_ is a great tool, it's also the "all-or-nothing" solution, which means one can't use it partially, they should
-maintain full commitment. It turns into a problem in case when an organisation has, say, a custom implementation of `fetch` or
-an SDK that entirely wraps the networking API in order to enable transparent JWT refreshing or retry mechanism.
+commit to it fully. It turns into a problem in case when an organisation has, say, a custom implementation of `fetch` or
+an SDK that entirely wraps the networking API up in order to enable transparent JWT refreshing or a retry mechanism.
 
 This is where `Protoweb` comes to the rescue: it converts messages to TS type definitions using `protoc` and [protoc-gen-ts](https://github.com/thesayyn/protoc-gen-ts), and then
 flavours it with service definitions of your choice. These services can later be used in parts of the front-end app, for instance,

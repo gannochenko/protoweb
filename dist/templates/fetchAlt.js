@@ -1,6 +1,10 @@
-import ejs from 'ejs';
-import {TemplateVariables} from "../type";
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.renderTemplate = void 0;
+const ejs_1 = __importDefault(require("ejs"));
 const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
 // This is an alternative template
 
@@ -32,7 +36,7 @@ export async function <%= method.name %>(request: <%= method.requestType %>): Pr
 }
 <% }); %>
 `;
-
-export const renderTemplate = (data: TemplateVariables): string => {
-    return ejs.render(template, data);
+const renderTemplate = (data) => {
+    return ejs_1.default.render(template, data);
 };
+exports.renderTemplate = renderTemplate;
