@@ -219,12 +219,12 @@ module.exports = {
 
 We can then compile the definitions to `~/my-output`:
 
-~~~
+~~~sh
 mkdir ~/my-output
 protoweb build -i ~/someservice/protobuf -o ~/my-output -t ~/cool_service_template.cjs
 ~~~
 
-The result will be:
+The result will become:
 
 ~~~typescript
 import { ErrorResponse, apiUrl } from "../../../util/networking";
@@ -346,7 +346,7 @@ Type `protoweb -h` to find out about all available commands.
 
 See the [open issues](https://github.com/gannochenko/protoweb/issues) for a list of proposed features (and known issues).
 
-### Development
+## Development
 
 1. Clone the repo
     ```sh
@@ -356,6 +356,10 @@ See the [open issues](https://github.com/gannochenko/protoweb/issues) for a list
     ```sh
     cd protoweb;
     yarn;
+    ```
+   
+3. Build and run
+    ```sh
     yarn start build -i <folder> -o <folder>;
     ```
 
