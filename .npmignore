@@ -1,0 +1,8 @@
+node_modules
+test/
+.git/
+.env
+.eslintrc
+.prettierrc
+tsconfig.json
+images/
