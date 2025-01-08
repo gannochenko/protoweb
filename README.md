@@ -43,7 +43,7 @@
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-    - [Installation to a Different Folder](#installation-to-a-different-folder)
+    - [Installation to a different folder](#installation-to-a-different-folder)
     - [Upgrading](#upgrading)
 - [Usage](#usage)
     - [Example](#example)
@@ -63,7 +63,7 @@
 [![Preview Screen Shot][product-screenshot]](https://example.com)
 -->
 
-`protoweb` is a tool for converting proto definitions into arbitrary JS/TS code that could be used in your organization.
+`Protoweb` is a tool for converting proto definitions into arbitrary JS/TS code that could be used in your organization.
 
 [Protocol buffers](https://protobuf.dev/) is an industry standard when it comes to building direct service-to-service communication. However,
 when used with the Google annotations extension to enable REST on-top of gRPC, it quickly becomes a hassle when running the thing in a front-end
@@ -72,17 +72,22 @@ project, such as React or Vue-based one.
 Engineers face two options:
 
 * Write and maintain service definitions manually, or
+* Use AI, such as Chat-GPT for one-time conversions, or
 * Use end-to-end solutions, such as [Connect.build](https://connectrpc.com/).
 
-While Connect.build is a great tool, it's also the "all-or-nothing" solution, which means we can't use it partially and should
-maintain full commitment instead. It turns into a problem in case when an organisation has, say, a custom implementation of `fetch` or
+Definitions written manually can be an option, but as the project grows, it will become more and more difficult to support and track changes.
+
+AI is certainly an option too, but not easily applicable when running inside CI/CD pipleines (even though it is possible).
+
+While _Connect.build_ is a great tool, it's also the "all-or-nothing" solution, which means one can't use it partially, they should
+maintain full commitment. It turns into a problem in case when an organisation has, say, a custom implementation of `fetch` or
 an SDK that entirely wraps the networking API in order to enable transparent JWT refreshing or retry mechanism.
 
-This is where `Protoweb` comes to help: it converts messages to TS type definitions using `protoc` and [protoc-gen-ts](https://github.com/thesayyn/protoc-gen-ts), and then
+This is where `Protoweb` comes to the rescue: it converts messages to TS type definitions using `protoc` and [protoc-gen-ts](https://github.com/thesayyn/protoc-gen-ts), and then
 flavours it with service definitions of your choice. These services can later be used in parts of the front-end app, for instance,
 in connection with [react-query](https://tanstack.com/query/v4/docs/framework/react/overview).
 
-Write your proto files once, then never write typescript.
+Write your proto files once, then never write typescript manually.
 
 ## Getting Started
 
