@@ -9,5 +9,3 @@ protoc \
   --ts_proto_opt=onlyTypes=true \
   -I /Users/s.gannochenko/proj/proto \
   /Users/s.gannochenko/proj/proto/foo/v1/foo
-
-yarn start build -i /Users/s.gannochenko/proj/proto/supplier_portal -o /Users/s.gannochenko/proto-test -r /Users/s.gannochenko/proj/proto
