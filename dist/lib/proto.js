@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findServiceDefinitions = findServiceDefinitions;
 function findServiceDefinitions(node, results = []) {
+    if (!node) {
+        return results;
+    }
     // Check if the current node has syntaxType equal to "ServiceDefinition"
     if (node.syntaxType === "ServiceDefinition") {
         // @ts-ignore

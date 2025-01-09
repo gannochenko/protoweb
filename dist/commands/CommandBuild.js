@@ -105,8 +105,9 @@ let CommandBuild = (() => {
                 .command('build')
                 .alias('b')
                 .description('build proto files')
-                .requiredOption('-i, --input <folder>', 'folder where the proto files are kept')
+                .requiredOption('-i, --input <folder>', 'folder where the proto files to build are kept')
                 .requiredOption('-o, --output <folder>', 'folder where the compiled files must be created')
+                .option('-r, --root <folder>', 'folder where the all proto files are kept')
                 .option('-t, --template <file>', 'template file')
                 // .option('-y, --yes', 'Use the default')
                 .action((options, command) => {
@@ -118,7 +119,7 @@ let CommandBuild = (() => {
         }
         static process(application, args) {
             return __awaiter(this, void 0, void 0, function* () {
-                var _a;
+                var _a, _b;
                 if (!(yield (0, fs_1.folderExists)(args.input))) {
                     console.error(`Error: folder ${args.input} does not exist.`);
                     return;
@@ -133,6 +134,12 @@ let CommandBuild = (() => {
                         return;
                     }
                 }
+                if (args.root) {
+                    if (!(yield (0, fs_1.folderExists)(args.root))) {
+                        console.error(`Error: folder ${args.root} does not exist.`);
+                        return;
+                    }
+                }
                 if (!(yield (0, exec_1.isCommandAvailable)("protoc"))) {
                     console.error("Error: protoc is not installed. Install it and try again.");
                     return;
@@ -144,7 +151,8 @@ let CommandBuild = (() => {
                 const options = {
                     cwd: process.cwd(),
                 };
-                const template = require((_a = args.template) !== null && _a !== void 0 ? _a : "../templates/fetch");
+                const root = (_a = args.root) !== null && _a !== void 0 ? _a : args.input;
+                const template = require((_b = args.template) !== null && _b !== void 0 ? _b : "../templates/fetch");
                 // @ts-ignore
                 if (typeof template.renderTemplate !== "function") {
                     console.error("Error: function renderTemplate() is missing in the template. Define it, and try again.");
@@ -168,12 +176,12 @@ let CommandBuild = (() => {
                             `--ts_proto_out=${args.output}`,
                             '--ts_proto_opt=onlyTypes=true',
                             '-I',
-                            args.input,
+                            root,
                             ...protoFiles,
                         ], options);
                     }
                     catch (error) {
-                        console.error('Error:', error.message);
+                        console.error("Error building types:", error);
                     }
                 }))();
                 const resolvePath = (origin, target) => {
@@ -183,6 +191,7 @@ let CommandBuild = (() => {
                 commonRoot.resolvePath = resolvePath;
                 // build services
                 yield (0, fs_1.findProtoFiles)(args.input, (filePath) => __awaiter(this, void 0, void 0, function* () {
+                    let dstPath = "";
                     try {
                         const content = yield (0, fs_1.readFileContent)(filePath);
                         const ast = protoParser.parse(content);
@@ -198,8 +207,8 @@ let CommandBuild = (() => {
                                 });
                             });
                             // match the file
-                            const relativePath = filePath.replace(args.input, "").replace(".proto", ".ts");
-                            const dstPath = path_1.default.join(args.output, relativePath);
+                            const relativePath = filePath.replace(root, "").replace(".proto", ".ts");
+                            dstPath = path_1.default.join(args.output, relativePath);
                             const protocOutput = yield (0, fs_1.readFileContent)(dstPath);
                             const output = template.renderTemplate({
                                 protocOutput,
@@ -207,9 +216,12 @@ let CommandBuild = (() => {
                             });
                             yield (0, fs_1.writeFileContent)(dstPath, output);
                         }
+                        else {
+                            console.info(`❌ no service definitions in file ${filePath}`);
+                        }
                     }
                     catch (error) {
-                        console.error("Error parsing proto file " + filePath + ":", error);
+                        console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, error);
                     }
                 }));
                 d('Executed successfully');
