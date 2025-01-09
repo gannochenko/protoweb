@@ -70,7 +70,7 @@
 when used with the Google annotations extension to enable REST on-top of gRPC, it quickly becomes a hassle when running the thing in a front-end
 project, such as React or Vue-based one. 
 
-Engineers face two options:
+Engineers face three options:
 
 * Write and maintain service definitions manually, or
 * Use AI, such as Chat-GPT for one-time conversions, or
@@ -339,13 +339,12 @@ Note, that `protocOutput` must be present in the template file, and __should not
     </tbody>
 </table>
 
-Specify `-r` only when you wish to compile proto files in a sub-folder. The builder still needs to know where
-all files are stored, because there could be imports inside.
+Specify `-r` only when you wish to compile only part of the proto files in a project. The builder still needs to know the root folder, because there could be imports inside.
 
 Example:
 
 ~~~bash
-protoweb build -i ~/someservice/protobuf/subfolder -r ~/someservice/protobuf/ -o ~/my-output -t ~/cool_service_template.cjs
+protoweb build -i ~/coolcompany/protobuf/coolproject -r ~/coolcompany/protobuf/ -o ~/my-output -t ~/cool_project_service_template.cjs
 ~~~
 
 Type `protoweb -h` to find out about all available commands.
