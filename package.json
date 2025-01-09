@@ -1,5 +1,5 @@
 {
-  "name": "protoweb",
+  "name": "@gannochenko/protoweb",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -11,6 +11,9 @@
     "start": "ts-node src/index.ts",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts'"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [],
   "author": "",
