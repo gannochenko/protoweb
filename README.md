@@ -359,8 +359,8 @@ A: Check if there are methods that have "option (google.api.http)" empty. Appare
 ## Roadmap
 
 * Bugfixing :)
-* Support for additional tooling such as JsonDecoder.
-  This is a debatable feature, because generally speaking Backend is a trustable entity. However, as TS definitions only provide static checks, we may want to have some runtime checks in place as well.
+* Support for additional tooling such as [JsonDecoder](https://www.npmjs.com/package/ts.data.json).
+  This is a debatable feature, because usually Backend we run is a trusted entity. However, TS definitions only provide static checks, we may want to have some runtime checks in place as well in case we make requests to third-party services.
   This is a doable task, yet a tricky one: the Protobuf AST must be compiled into a schema of JsonDecoder, where there could be a lot of edge cases to cover.
 
 See the [open issues](https://github.com/gannochenko/protoweb/issues) for a list of proposed features (and known issues).
