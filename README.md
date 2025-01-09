@@ -49,6 +49,7 @@
     - [Example](#example)
     - [Templating Mechanism](#templating-mechanism)
 - [Commands](#commands)
+- [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -330,6 +331,7 @@ Note, that `protocOutput` must be present in the template file, and __should not
                 <ul>
                     <li>-i &lt;path&gt; - input folder</li>
                     <li>-o &lt;path&gt; - output folder</li>
+                    <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
                 </ul>
             </td>
@@ -337,12 +339,29 @@ Note, that `protocOutput` must be present in the template file, and __should not
     </tbody>
 </table>
 
+Specify `-r` only when you wish to compile proto files in a sub-folder. The builder still needs to know where
+all files are stored, because there could be imports inside.
+
+Example:
+
+~~~bash
+protoweb build -i ~/someservice/protobuf/subfolder -r ~/someservice/protobuf/ -o ~/my-output -t ~/cool_service_template.cjs
+~~~
+
 Type `protoweb -h` to find out about all available commands.
+
+## Troubleshooting
+
+Q: The builder says "❌ no service definitions in file", but I am sure there are definitions
+
+A: Check if there are methods that have "option (google.api.http)" empty. Apparently, the underlying compiler consider this illegal syntax. There must be a verb and a path defined correctly. 
 
 ## Roadmap
 
 * Bugfixing :)
-* Support for additional tooling such as JsonDecoder. This is a doable task, yet a tricky one: the Protobuf AST must be compiled into a schema of JsonDecoder, where there could be a lot of edge cases to cover.
+* Support for additional tooling such as JsonDecoder.
+  This is a debatable feature, because generally speaking Backend is a trustable entity. However, as TS definitions only provide static checks, we may want to have some runtime checks in place as well.
+  This is a doable task, yet a tricky one: the Protobuf AST must be compiled into a schema of JsonDecoder, where there could be a lot of edge cases to cover.
 
 See the [open issues](https://github.com/gannochenko/protoweb/issues) for a list of proposed features (and known issues).
 

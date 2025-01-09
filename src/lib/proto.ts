@@ -21,6 +21,10 @@ export type ServiceDefinition = {
 };
 
 export function findServiceDefinitions(node: NestedObject, results: ServiceDefinition[] = []): ServiceDefinition[] {
+    if (!node) {
+        return results;
+    }
+
     // Check if the current node has syntaxType equal to "ServiceDefinition"
     if (node.syntaxType === "ServiceDefinition") {
         // @ts-ignore

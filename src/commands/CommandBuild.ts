@@ -20,6 +20,7 @@ const d = debug('run');
 type Options = {
   input: string;
   output: string;
+  root: string;
   template?: string;
 };
 
@@ -33,8 +34,9 @@ export class CommandBuild {
             .command('build')
             .alias('b')
             .description('build proto files')
-            .requiredOption('-i, --input <folder>', 'folder where the proto files are kept')
+            .requiredOption('-i, --input <folder>', 'folder where the proto files to build are kept')
             .requiredOption('-o, --output <folder>', 'folder where the compiled files must be created')
+            .option('-r, --root <folder>', 'folder where the all proto files are kept')
             .option('-t, --template <file>', 'template file')
             // .option('-y, --yes', 'Use the default')
             .action((options: Options, command: CommanderCommand) => {
@@ -66,6 +68,13 @@ export class CommandBuild {
             }
         }
 
+        if (args.root) {
+            if (!await folderExists(args.root)) {
+                console.error(`Error: folder ${args.root} does not exist.`);
+                return;
+            }
+        }
+
         if (!await isCommandAvailable("protoc")) {
             console.error("Error: protoc is not installed. Install it and try again.");
             return;
@@ -79,6 +88,8 @@ export class CommandBuild {
         const options: SpawnOptions = {
             cwd: process.cwd(),
         };
+
+        const root = args.root ?? args.input;
 
         const template = require(args.template ?? "../templates/fetch");
         // @ts-ignore
@@ -107,11 +118,11 @@ export class CommandBuild {
                     `--ts_proto_out=${args.output}`,
                     '--ts_proto_opt=onlyTypes=true',
                     '-I',
-                    args.input,
+                    root,
                     ...protoFiles,
                 ], options);
             } catch (error: any) {
-                console.error('Error:', error.message);
+                console.error("Error building types:", error);
             }
         })();
 
@@ -124,6 +135,7 @@ export class CommandBuild {
 
         // build services
         await findProtoFiles(args.input, async (filePath) => {
+            let dstPath = "";
             try {
                 const content = await readFileContent(filePath);
                 const ast = protoParser.parse(content);
@@ -141,8 +153,8 @@ export class CommandBuild {
                     });
 
                     // match the file
-                    const relativePath = filePath.replace(args.input, "").replace(".proto", ".ts");
-                    const dstPath = path.join(args.output, relativePath);
+                    const relativePath = filePath.replace(root, "").replace(".proto", ".ts");
+                    dstPath = path.join(args.output, relativePath);
 
                     const protocOutput = await readFileContent(dstPath);
                     
@@ -152,9 +164,11 @@ export class CommandBuild {
                     });
                     
                     await writeFileContent(dstPath, output);
+                } else {
+                    console.info(`❌ no service definitions in file ${filePath}`);
                 }
             } catch (error) {
-                console.error("Error parsing proto file "+filePath+":", error);
+                console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, error);
             }
         })
 
