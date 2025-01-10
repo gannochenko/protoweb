@@ -32,5 +32,7 @@ jobs:
       - name: Publish to npm
         run: npm publish
 
+# todo: commit the version back to the repository
+
       - name: Success notification
         run: echo "Package successfully published to npm!"

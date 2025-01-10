@@ -13,7 +13,7 @@ import {fileExists, findProtoFiles, folderExists, readFileContent, writeFileCont
 import path from "path";
 import * as protoParser from "proto-parser";
 import {findServiceDefinitions} from "../lib/proto";
-import {toTemplateService} from "../lib/template";
+import {toTemplateService, toTemplateServices} from "../lib/template";
 
 const d = debug('run');
 
@@ -160,9 +160,9 @@ export class CommandBuild {
                     
                     const output = template.renderTemplate({
                         protocOutput,
-                        methods: toTemplateService(result[0]),
+                        services: toTemplateServices(result),
                     });
-                    
+
                     await writeFileContent(dstPath, output);
                 } else {
                     console.info(`❌ no service definitions in file ${filePath}`);

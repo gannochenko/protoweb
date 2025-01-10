@@ -1,4 +1,4 @@
-import {TemplateMethod} from "../type";
+import {TemplateService} from "../type";
 import {ServiceDefinition} from "./proto";
 
 const optionNameToVerb: Record<string, string> = {
@@ -9,8 +9,15 @@ const optionNameToVerb: Record<string, string> = {
     "(google.api.http).delete": "DELETE",
 };
 
-export function toTemplateService(definition: ServiceDefinition): TemplateMethod[] {
-    const result: TemplateMethod[] = [];
+export function toTemplateServices(definition: ServiceDefinition[]): TemplateService[] {
+    return definition.map(service => toTemplateService(service));
+}
+
+export function toTemplateService(definition: ServiceDefinition): TemplateService {
+    const result: TemplateService = {
+        name: definition.name,
+        methods: [],
+    };
 
     Object.keys(definition.methods).forEach(methodName => {
         const method = definition.methods[methodName];
@@ -26,7 +33,7 @@ export function toTemplateService(definition: ServiceDefinition): TemplateMethod
             }
         })
 
-        result.push({
+        result.methods.push({
             name: method.name,
             requestType: method.requestType.value,
             responseType: method.responseType.value,

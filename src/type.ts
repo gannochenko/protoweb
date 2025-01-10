@@ -15,7 +15,12 @@ export type TemplateMethod = {
     comment: string;
 };
 
+export type TemplateService = {
+    name: string;
+    methods: TemplateMethod[];
+};
+
 export type TemplateVariables = {
     protocOutput: string;
-    methods: TemplateMethod[];
+    services: TemplateService[];
 };

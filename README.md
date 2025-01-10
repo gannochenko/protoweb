@@ -183,7 +183,7 @@ const ejs = require('ejs');
 const template = `import { ErrorResponse, apiUrl } from "../../../util/networking";
 
 <%- protocOutput %>
-<% methods.forEach(method => { %>
+<% services[0].methods.forEach(method => { %>
 // <%= method.comment %>
 export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %> | ErrorResponse> {
   try {
@@ -300,13 +300,16 @@ The structure of data is the following:
 ~~~typescript
 {
     protocOutput: string; // output produced by protoc, contains type definitions
-    methods: { // methods parsed from the protobuf file
-        name: string; // method name
-        requestType: string; // name of the request type
-        responseType: string; // name of the response type
-        url: string; // url parsed from the google annotations
-        verb: string; // HTTP verb parsed from the google annotations
-        comment: string; // optional comment
+    services: { // services parsed from the protobuf file
+        name: string;
+        methods: { // methods parsed from the protobuf file
+            name: string; // method name
+            requestType: string; // name of the request type
+            responseType: string; // name of the response type
+            url: string; // url parsed from the google annotations
+            verb: string; // HTTP verb parsed from the google annotations
+            comment: string; // optional comment
+        }[];
     }[];
 }
 ~~~
