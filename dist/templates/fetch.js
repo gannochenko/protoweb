@@ -8,8 +8,10 @@ const ejs_1 = __importDefault(require("ejs"));
 const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
 
 <%- protocOutput %>
-<% methods.forEach(method => { %>
-// <%= method.comment %>
+<% services[0].methods.forEach(method => { %>
+/*
+<%= method.comment %>
+*/
 export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %> | ErrorResponse> {
   try {
     const response = await fetchWithRetry(\`$\{apiUrl\}<%= method.url %>\`, {

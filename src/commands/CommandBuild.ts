@@ -56,10 +56,14 @@ export class CommandBuild {
             return;
         }
 
-        if (!await folderExists(args.input)) {
+        const input = path.resolve(args.input);
+
+        if (!await folderExists(args.output)) {
             console.error(`Error: folder ${args.output} does not exist.`);
             return;
         }
+
+        const output = path.resolve(args.output);
 
         if (args.template) {
             if (!await fileExists(args.template)) {
@@ -68,12 +72,16 @@ export class CommandBuild {
             }
         }
 
+        const template = args.template ? path.resolve(args.template) : undefined;
+
         if (args.root) {
             if (!await folderExists(args.root)) {
                 console.error(`Error: folder ${args.root} does not exist.`);
                 return;
             }
         }
+
+        const root = args.root ? path.resolve(args.root) : undefined;
 
         if (!await isCommandAvailable("protoc")) {
             console.error("Error: protoc is not installed. Install it and try again.");
@@ -89,11 +97,11 @@ export class CommandBuild {
             cwd: process.cwd(),
         };
 
-        const root = args.root ?? args.input;
+        const protoRoot = root ?? input;
 
-        const template = require(args.template ?? "../templates/fetch");
+        const templateCode = require(template ?? "../templates/fetch");
         // @ts-ignore
-        if (typeof template.renderTemplate !== "function") {
+        if (typeof templateCode.renderTemplate !== "function") {
             console.error("Error: function renderTemplate() is missing in the template. Define it, and try again.");
             return;
         }
@@ -102,7 +110,7 @@ export class CommandBuild {
         await (async () => {
             try {
                 const findResult = await runCommand('find', [
-                    args.input,
+                    input,
                     '-name',
                     '*.proto',
                 ], options);
@@ -115,10 +123,10 @@ export class CommandBuild {
 
                 await runCommand('protoc', [
                     '--plugin=protoc-gen-ts_proto=' + (await runCommand('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
-                    `--ts_proto_out=${args.output}`,
+                    `--ts_proto_out=${output}`,
                     '--ts_proto_opt=onlyTypes=true',
                     '-I',
-                    root,
+                    protoRoot,
                     ...protoFiles,
                 ], options);
             } catch (error: any) {
@@ -127,14 +135,14 @@ export class CommandBuild {
         })();
 
         const resolvePath = (origin: string, target: string): string => {
-            return path.resolve(args.input, target);
+            return path.resolve(input, target);
         }
 
         const commonRoot = new protobuf.Root();
         commonRoot.resolvePath = resolvePath;
 
         // build services
-        await findProtoFiles(args.input, async (filePath) => {
+        await findProtoFiles(input, async (filePath) => {
             let dstPath = "";
             try {
                 const content = await readFileContent(filePath);
@@ -153,17 +161,17 @@ export class CommandBuild {
                     });
 
                     // match the file
-                    const relativePath = filePath.replace(root, "").replace(".proto", ".ts");
-                    dstPath = path.join(args.output, relativePath);
+                    const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
+                    dstPath = path.join(output, relativePath);
 
                     const protocOutput = await readFileContent(dstPath);
                     
-                    const output = template.renderTemplate({
+                    const fileContent = templateCode.renderTemplate({
                         protocOutput,
                         services: toTemplateServices(result),
                     });
 
-                    await writeFileContent(dstPath, output);
+                    await writeFileContent(dstPath, fileContent);
                 } else {
                     console.info(`❌ no service definitions in file ${filePath}`);
                 }

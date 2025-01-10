@@ -119,27 +119,30 @@ let CommandBuild = (() => {
         }
         static process(application, args) {
             return __awaiter(this, void 0, void 0, function* () {
-                var _a, _b;
                 if (!(yield (0, fs_1.folderExists)(args.input))) {
                     console.error(`Error: folder ${args.input} does not exist.`);
                     return;
                 }
-                if (!(yield (0, fs_1.folderExists)(args.input))) {
+                const input = path_1.default.resolve(args.input);
+                if (!(yield (0, fs_1.folderExists)(args.output))) {
                     console.error(`Error: folder ${args.output} does not exist.`);
                     return;
                 }
+                const output = path_1.default.resolve(args.output);
                 if (args.template) {
                     if (!(yield (0, fs_1.fileExists)(args.template))) {
                         console.error(`Error: template ${args.template} does not exist.`);
                         return;
                     }
                 }
+                const template = args.template ? path_1.default.resolve(args.template) : undefined;
                 if (args.root) {
                     if (!(yield (0, fs_1.folderExists)(args.root))) {
                         console.error(`Error: folder ${args.root} does not exist.`);
                         return;
                     }
                 }
+                const root = args.root ? path_1.default.resolve(args.root) : undefined;
                 if (!(yield (0, exec_1.isCommandAvailable)("protoc"))) {
                     console.error("Error: protoc is not installed. Install it and try again.");
                     return;
@@ -151,10 +154,10 @@ let CommandBuild = (() => {
                 const options = {
                     cwd: process.cwd(),
                 };
-                const root = (_a = args.root) !== null && _a !== void 0 ? _a : args.input;
-                const template = require((_b = args.template) !== null && _b !== void 0 ? _b : "../templates/fetch");
+                const protoRoot = root !== null && root !== void 0 ? root : input;
+                const templateCode = require(template !== null && template !== void 0 ? template : "../templates/fetch");
                 // @ts-ignore
-                if (typeof template.renderTemplate !== "function") {
+                if (typeof templateCode.renderTemplate !== "function") {
                     console.error("Error: function renderTemplate() is missing in the template. Define it, and try again.");
                     return;
                 }
@@ -162,7 +165,7 @@ let CommandBuild = (() => {
                 yield (() => __awaiter(this, void 0, void 0, function* () {
                     try {
                         const findResult = yield (0, exec_1.runCommand)('find', [
-                            args.input,
+                            input,
                             '-name',
                             '*.proto',
                         ], options);
@@ -173,10 +176,10 @@ let CommandBuild = (() => {
                         }
                         yield (0, exec_1.runCommand)('protoc', [
                             '--plugin=protoc-gen-ts_proto=' + (yield (0, exec_1.runCommand)('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
-                            `--ts_proto_out=${args.output}`,
+                            `--ts_proto_out=${output}`,
                             '--ts_proto_opt=onlyTypes=true',
                             '-I',
-                            root,
+                            protoRoot,
                             ...protoFiles,
                         ], options);
                     }
@@ -185,12 +188,12 @@ let CommandBuild = (() => {
                     }
                 }))();
                 const resolvePath = (origin, target) => {
-                    return path_1.default.resolve(args.input, target);
+                    return path_1.default.resolve(input, target);
                 };
                 const commonRoot = new protobuf.Root();
                 commonRoot.resolvePath = resolvePath;
                 // build services
-                yield (0, fs_1.findProtoFiles)(args.input, (filePath) => __awaiter(this, void 0, void 0, function* () {
+                yield (0, fs_1.findProtoFiles)(input, (filePath) => __awaiter(this, void 0, void 0, function* () {
                     let dstPath = "";
                     try {
                         const content = yield (0, fs_1.readFileContent)(filePath);
@@ -207,14 +210,14 @@ let CommandBuild = (() => {
                                 });
                             });
                             // match the file
-                            const relativePath = filePath.replace(root, "").replace(".proto", ".ts");
-                            dstPath = path_1.default.join(args.output, relativePath);
+                            const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
+                            dstPath = path_1.default.join(output, relativePath);
                             const protocOutput = yield (0, fs_1.readFileContent)(dstPath);
-                            const output = template.renderTemplate({
+                            const fileContent = templateCode.renderTemplate({
                                 protocOutput,
-                                methods: (0, template_1.toTemplateService)(result[0]),
+                                services: (0, template_1.toTemplateServices)(result),
                             });
-                            yield (0, fs_1.writeFileContent)(dstPath, output);
+                            yield (0, fs_1.writeFileContent)(dstPath, fileContent);
                         }
                         else {
                             console.info(`❌ no service definitions in file ${filePath}`);

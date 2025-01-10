@@ -5,7 +5,9 @@ const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../.
 
 <%- protocOutput %>
 <% services[0].methods.forEach(method => { %>
-// <%= method.comment %>
+/*
+<%= method.comment %>
+*/
 export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %> | ErrorResponse> {
   try {
     const response = await fetchWithRetry(\`$\{apiUrl\}<%= method.url %>\`, {

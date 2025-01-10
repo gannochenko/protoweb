@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toTemplateServices = toTemplateServices;
 exports.toTemplateService = toTemplateService;
 const optionNameToVerb = {
     "(google.api.http).get": "GET",
@@ -8,8 +9,14 @@ const optionNameToVerb = {
     "(google.api.http).patch": "PATCH",
     "(google.api.http).delete": "DELETE",
 };
+function toTemplateServices(definition) {
+    return definition.map(service => toTemplateService(service));
+}
 function toTemplateService(definition) {
-    const result = [];
+    const result = {
+        name: definition.name,
+        methods: [],
+    };
     Object.keys(definition.methods).forEach(methodName => {
         const method = definition.methods[methodName];
         let verb = "";
@@ -21,7 +28,7 @@ function toTemplateService(definition) {
                 url = value;
             }
         });
-        result.push({
+        result.methods.push({
             name: method.name,
             requestType: method.requestType.value,
             responseType: method.responseType.value,
