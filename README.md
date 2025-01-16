@@ -97,7 +97,7 @@ Write your proto files once, then never write typescript manually.
 * [Node](https://nodesource.com/blog/installing-node-js-tutorial-using-nvm-on-mac-os-x-and-ubuntu/)
 * [Yarn](https://yarnpkg.com/lang/en/docs/install/#mac-stable) or NPM (comes with Node)
 * [Protoc](https://grpc.io/docs/protoc-installation/)
-* [Protoc-gen-ts](https://github.com/thesayyn/protoc-gen-ts)
+* [ts-proto](https://www.npmjs.com/package/ts-proto)
 
 ### Installation
 
@@ -404,7 +404,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 * [TypeScript](http://www.typescriptlang.org/)
 * Protoc
-* [Protoc-ts-gen](https://github.com/thesayyn/protoc-gen-ts)
+* [ts-proto](https://www.npmjs.com/package/ts-proto)
 * [Proto-parser](https://github.com/lancewuz/proto-parser)
 * [Commander](https://www.npmjs.com/package/commander)
 * [EJS](https://www.npmjs.com/package/ejs)
