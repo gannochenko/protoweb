@@ -23,7 +23,6 @@
     "commander": "^13.0.0",
     "debug": "^4.4.0",
     "ejs": "^3.1.10",
-    "execa": "^9.5.2",
     "fetch-retry": "^6.0.0",
     "figlet": "^1.8.0",
     "inquirer": "^12.3.0",

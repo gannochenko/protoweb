@@ -88,3 +88,5 @@ temp/
 .idea
 
 generated
+
+dist
