@@ -1,6 +1,11 @@
 import { Command as CommanderCommand } from 'commander';
 import * as protobuf from 'protobufjs';
 import debug from 'debug';
+import path from "path";
+import * as protoParser from "proto-parser";
+import {SpawnOptions} from "child_process";
+import ejs from "ejs";
+
 import {
     ActionCallback,
     CommandProcessor,
@@ -8,12 +13,9 @@ import {
 } from './type';
 import {Application} from '../lib/application';
 import {isCommandAvailable, runCommand} from "../lib/exec";
-import {SpawnOptions} from "child_process";
 import {fileExists, findProtoFiles, folderExists, readFileContent, writeFileContent} from "../lib/fs";
-import path from "path";
-import * as protoParser from "proto-parser";
 import {findServiceDefinitions} from "../lib/proto";
-import {toTemplateService, toTemplateServices} from "../lib/template";
+import {toTemplateServices} from "../lib/template";
 
 const d = debug('run');
 
@@ -22,6 +24,7 @@ type Options = {
   output: string;
   root: string;
   template?: string;
+  settings?: string;
 };
 
 @Implements<CommandProcessor>()
@@ -38,6 +41,7 @@ export class CommandBuild {
             .requiredOption('-o, --output <folder>', 'folder where the compiled files must be created')
             .option('-r, --root <folder>', 'folder where the all proto files are kept')
             .option('-t, --template <file>', 'template file')
+            .option('-s, --settings <settings>', 'protobuf compiler settings')
             // .option('-y, --yes', 'Use the default')
             .action((options: Options, command: CommanderCommand) => {
                 return actionCallback({
@@ -106,6 +110,8 @@ export class CommandBuild {
             return;
         }
 
+        let settings = args.settings ?? "onlyTypes=true";
+
         // build types
         await (async () => {
             try {
@@ -124,7 +130,7 @@ export class CommandBuild {
                 await runCommand('protoc', [
                     '--plugin=protoc-gen-ts_proto=' + (await runCommand('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
                     `--ts_proto_out=${output}`,
-                    '--ts_proto_opt=onlyTypes=true',
+                    `--ts_proto_opt=${settings}`,
                     '-I',
                     protoRoot,
                     ...protoFiles,
@@ -143,10 +149,14 @@ export class CommandBuild {
 
         // build services
         await findProtoFiles(input, async (filePath) => {
-            let dstPath = "";
+            const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
+            const dstPath = path.join(output, relativePath);
+
             try {
-                const content = await readFileContent(filePath);
-                const ast = protoParser.parse(content);
+                await writeFileContent(dstPath, doMamboJumboReplacement(await readFileContent(dstPath)));
+
+                const protoContent = await readFileContent(filePath);
+                const ast = protoParser.parse(protoContent);
 
                 const services: any[] = [];
                 // @ts-ignore
@@ -160,15 +170,14 @@ export class CommandBuild {
                         });
                     });
 
-                    // match the file
-                    const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
-                    dstPath = path.join(output, relativePath);
-
                     const protocOutput = await readFileContent(dstPath);
-                    
+
                     const fileContent = templateCode.renderTemplate({
                         protocOutput,
                         services: toTemplateServices(result),
+                        ejs,
+                        sourcePath: filePath,
+                        destinationPath: dstPath,
                     });
 
                     await writeFileContent(dstPath, fileContent);
@@ -182,4 +191,9 @@ export class CommandBuild {
 
         d('Executed successfully');
     }
+}
+
+function doMamboJumboReplacement(content: string): string {
+    // somehow the proto compiler doesn't replace google.protobuf.Empty
+    return content.replace(/google\.protobuf\.Empty/g, "Record<string, any>");
 }

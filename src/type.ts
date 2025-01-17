@@ -1,3 +1,5 @@
+import ejs from "ejs";
+
 export type Nullable<X = any> = X | null;
 
 export interface ObjectLiteral<P = any> {
@@ -23,4 +25,7 @@ export type TemplateService = {
 export type TemplateVariables = {
     protocOutput: string;
     services: TemplateService[];
+    ejs: typeof ejs;
+    sourcePath: string;
+    destinationPath: string;
 };

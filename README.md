@@ -290,7 +290,10 @@ Now use this file with react-hooks, easy.
 
 ### Templating mechanism
 
-Protoweb uses [ejs](https://ejs.co/) as a template engine.
+Protoweb uses [ejs](https://ejs.co/) as a template engine for its internal template. You are free to use anything else in your
+custom template, but whatever you use __should be resolvable relative to the location of your template file__.
+It means there ought to be the node_modules folder next to it, or in a one of the parent folders, and `npm install` or `yarn install` must
+be executed beforehand.
 
 The custom template should export the `renderTemplate()` function that takes data as an argument
 and returns a string.
@@ -301,7 +304,7 @@ The structure of data is the following:
 {
     protocOutput: string; // output produced by protoc, contains type definitions
     services: { // services parsed from the protobuf file
-        name: string;
+        name: string; // service name
         methods: { // methods parsed from the protobuf file
             name: string; // method name
             requestType: string; // name of the request type
@@ -311,6 +314,9 @@ The structure of data is the following:
             comment: string; // optional comment
         }[];
     }[];
+    ejs: typeof ejs; // an instance of ejs, so there is no need to import it in a template
+    sourcePath: string; // path to the source proto file
+    destinationPath: string; // path to the destination typescript file
 }
 ~~~
 
@@ -336,6 +342,7 @@ Note, that `protocOutput` must be present in the template file, and __should not
                     <li>-o &lt;path&gt; - output folder</li>
                     <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
+                    <li>-s &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true"</i></li>
                 </ul>
             </td>
         </tr>
