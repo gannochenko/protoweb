@@ -153,8 +153,6 @@ export class CommandBuild {
             const dstPath = path.join(output, relativePath);
 
             try {
-                await writeFileContent(dstPath, doMamboJumboReplacement(await readFileContent(dstPath)));
-
                 const protoContent = await readFileContent(filePath);
                 const ast = protoParser.parse(protoContent);
 
@@ -191,9 +189,4 @@ export class CommandBuild {
 
         d('Executed successfully');
     }
-}
-
-function doMamboJumboReplacement(content: string): string {
-    // somehow the proto compiler doesn't replace google.protobuf.Empty
-    return content.replace(/google\.protobuf\.Empty/g, "Record<string, any>");
 }
