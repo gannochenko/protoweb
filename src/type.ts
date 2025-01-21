@@ -1,5 +1,6 @@
 import ejs from "ejs";
 import {convertSnakeToCamel, processURLPlaceholders} from "./lib/util";
+import {ProtoDocument} from "proto-parser";
 
 export type Nullable<X = any> = X | null;
 
@@ -26,10 +27,13 @@ export type TemplateService = {
 export type TemplateVariables = {
     protocOutput: string;
     services: TemplateService[];
+
     sourcePath: string;
     destinationPath: string;
 
     ejs: typeof ejs;
-    convertSnakeToCamel: typeof convertSnakeToCamel,
-    processURLPlaceholders: typeof processURLPlaceholders,
+    convertSnakeToCamel: typeof convertSnakeToCamel;
+    processURLPlaceholders: typeof processURLPlaceholders;
+
+    ast: ProtoDocument;
 };

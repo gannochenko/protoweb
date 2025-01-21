@@ -184,6 +184,9 @@ export class CommandBuild {
                         ejs,
                         convertSnakeToCamel, // product_id -> productId
                         processURLPlaceholders,
+
+                        // etc
+                        ast,
                     });
 
                     await writeFileContent(dstPath, fileContent);
