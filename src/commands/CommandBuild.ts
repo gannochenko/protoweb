@@ -16,6 +16,7 @@ import {isCommandAvailable, runCommand} from "../lib/exec";
 import {fileExists, findProtoFiles, folderExists, readFileContent, writeFileContent} from "../lib/fs";
 import {findServiceDefinitions} from "../lib/proto";
 import {toTemplateServices} from "../lib/template";
+import {processURLPlaceholders, convertSnakeToCamel} from "../lib/util";
 
 const d = debug('run');
 
@@ -161,7 +162,7 @@ export class CommandBuild {
                 const result = findServiceDefinitions(ast.root, services);
                 if (result.length) {
                     result.forEach(service => {
-                        console.log(`👉 ${filePath} => ${service.name}`);
+                        console.log(`👉 ${service.name}: ${filePath} => ${dstPath}`);
                         Object.keys(service.methods).forEach(methodName => {
                             const method = service.methods[methodName];
                             console.log(`   ✅ ${method.name}`);
@@ -171,11 +172,18 @@ export class CommandBuild {
                     const protocOutput = await readFileContent(dstPath);
 
                     const fileContent = templateCode.renderTemplate({
+                        // data
                         protocOutput,
                         services: toTemplateServices(result),
-                        ejs,
+
+                        // paths
                         sourcePath: filePath,
                         destinationPath: dstPath,
+
+                        // utils
+                        ejs,
+                        convertSnakeToCamel, // product_id -> productId
+                        processURLPlaceholders,
                     });
 
                     await writeFileContent(dstPath, fileContent);

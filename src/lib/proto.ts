@@ -31,9 +31,6 @@ export function findServiceDefinitions(node: NestedObject, results: ServiceDefin
 
     // Check if the current node has syntaxType equal to "ServiceDefinition"
     if (isServiceDefinition(node)) {
-        // @ts-ignore
-        console.log(node.methods);
-
         Object.keys(node.methods).forEach(key => {
             const method = node.methods[key];
 
