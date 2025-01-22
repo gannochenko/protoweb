@@ -16,7 +16,9 @@ import {isCommandAvailable, runCommand} from "../lib/exec";
 import {fileExists, findProtoFiles, folderExists, readFileContent, writeFileContent} from "../lib/fs";
 import {findServiceDefinitions} from "../lib/proto";
 import {toTemplateServices} from "../lib/template";
-import {processURLPlaceholders, convertSnakeToCamel} from "../lib/util";
+import {processURLPlaceholders, convertSnakeToCamel, ucFirst} from "../lib/util";
+import {isError} from "../lib/protoASTTypes";
+import {generateDecoders} from "../lib/jsonDecoder";
 
 const d = debug('run');
 
@@ -156,24 +158,29 @@ export class CommandBuild {
             try {
                 const protoContent = await readFileContent(filePath);
                 const ast = protoParser.parse(protoContent);
-
-                const services: any[] = [];
-                // @ts-ignore
-                const result = findServiceDefinitions(ast.root, services);
-                if (result.length) {
-                    result.forEach(service => {
-                        console.log(`👉 ${service.name}: ${filePath} => ${dstPath}`);
-                        Object.keys(service.methods).forEach(methodName => {
-                            const method = service.methods[methodName];
-                            console.log(`   ✅ ${method.name}`);
+                if (isError(ast)) {
+                    console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, ast.error);
+                } else {
+                    const services: any[] = [];
+                    const result = findServiceDefinitions(ast.root, services);
+                    if (result.length) {
+                        result.forEach(service => {
+                            console.log(`👉 ${service.name}: ${filePath} => ${dstPath}`);
+                            Object.keys(service.methods).forEach(methodName => {
+                                const method = service.methods[methodName];
+                                // console.log(`   ✅ ${method.name}`);
+                            });
                         });
-                    });
+                    } else {
+                        // console.info(`❌ no service definitions in file ${filePath}`);
+                    }
 
-                    const protocOutput = await readFileContent(dstPath);
+                    let decoders = generateDecoders(ast.root, "")
 
                     const fileContent = templateCode.renderTemplate({
                         // data
-                        protocOutput,
+                        protocOutput: await readFileContent(dstPath),
+                        decoders,
                         services: toTemplateServices(result),
 
                         // paths
@@ -184,14 +191,13 @@ export class CommandBuild {
                         ejs,
                         convertSnakeToCamel, // product_id -> productId
                         processURLPlaceholders,
+                        ucFirst,
 
                         // etc
                         ast,
                     });
 
                     await writeFileContent(dstPath, fileContent);
-                } else {
-                    console.info(`❌ no service definitions in file ${filePath}`);
                 }
             } catch (error) {
                 console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, error);

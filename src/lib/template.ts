@@ -1,5 +1,5 @@
 import {TemplateService} from "../type";
-import {ServiceDefinition} from "./proto";
+import {ServiceDefinition} from "./protoASTTypes";
 
 const optionNameToVerb: Record<string, string> = {
     "(google.api.http).get": "GET",

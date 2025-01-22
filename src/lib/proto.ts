@@ -1,30 +1,17 @@
-type NestedObject = {
-    nested: Record<string, NestedObject>;
-    syntaxType: string;
-};
+import {
+    isServiceDefinition,
+    NestedObject,
+    ServiceDefinition
+} from "./protoASTTypes";
 
-type MethodDefinition = {
-    options: Record<string, string>;
-    name: string;
-    requestType: {
-        value: string;
-    };
-    responseType: {
-        value: string;
-    };
-    comment: string;
-};
+import {ProtoRoot} from "proto-parser";
+import {removePrefix} from "./util";
 
-export type ServiceDefinition = {
-    name: string;
-    methods: Record<string, MethodDefinition>;
-};
+export function findServiceDefinitions(node: ProtoRoot, results: ServiceDefinition[] = []): ServiceDefinition[] {
+    return findServiceDefinitionsInner(node as NestedObject, results);
+}
 
-const isServiceDefinition = (node: any): node is ServiceDefinition => {
-    return node.syntaxType === "ServiceDefinition";
-};
-
-export function findServiceDefinitions(node: NestedObject, results: ServiceDefinition[] = []): ServiceDefinition[] {
+export function findServiceDefinitionsInner(node: NestedObject, results: ServiceDefinition[] = []): ServiceDefinition[] {
     if (!node) {
         return results;
     }
@@ -48,10 +35,9 @@ export function findServiceDefinitions(node: NestedObject, results: ServiceDefin
         results.push(node as ServiceDefinition);
     }
 
-    // If the node has nested children, recursively search them
     if (node.nested) {
         for (const child in node.nested) {
-            findServiceDefinitions(node.nested[child], results);
+            findServiceDefinitionsInner(node.nested[child], results);
         }
     }
 
@@ -67,5 +53,5 @@ const replaceTypes = (type: string) => {
         return typeMap[type];
     }
 
-    return type;
+    return removePrefix(type);
 };
