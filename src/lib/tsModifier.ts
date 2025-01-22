@@ -6,7 +6,7 @@ export class TSModifier {
     async injectDecodersForTypes(types: string[]) {
         // if (this.filePath.includes("v5/product.proto")) {
             const printer = ts.createPrinter();
-            this.tsCode = printer.printFile(this.injectDecoderImports(this.injectImports(this.parseSnippetToAST(this.tsCode)), types));
+            this.tsCode = printer.printFile(this.injectImports(this.injectDecoderImports(this.parseSnippetToAST(this.tsCode), types)));
         // }
     }
 

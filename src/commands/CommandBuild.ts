@@ -173,16 +173,13 @@ export class CommandBuild {
 
                     let decoders = "";
                     if (args.withJsonDecoder) {
-                        const jsonDecoder = new JSONDecoderRenderer(ast.root, !!args.withJsonDecoderRequiredFields);
+                        const jsonDecoder = new JSONDecoderRenderer(ast.root, !!args.withJsonDecoderRequiredFields, filePath);
                         decoders = jsonDecoder.generateDecoders();
 
-                        const importedMessages = jsonDecoder.getImportedMessages();
-                        if (importedMessages.length) {
-                            // this will inject decoder imports
-                            const tsModifier = new TSModifier(protocOutput, filePath);
-                            await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
-                            protocOutput = tsModifier.getCode();
-                        }
+                        // this will inject decoder imports
+                        const tsModifier = new TSModifier(protocOutput, filePath);
+                        await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
+                        protocOutput = tsModifier.getCode();
 
                         protocOutput = `${protocOutput}\n\n${decoders}`;
                     }
