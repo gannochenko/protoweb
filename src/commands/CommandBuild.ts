@@ -115,7 +115,6 @@ export class CommandBuild {
 
         let settings = args.settings ?? "onlyTypes=true";
 
-        // build types
         await (async () => {
             try {
                 const findResult = await runCommand('find', [
@@ -143,12 +142,12 @@ export class CommandBuild {
             }
         })();
 
-        const resolvePath = (origin: string, target: string): string => {
-            return path.resolve(input, target);
-        }
+        // const resolvePath = (origin: string, target: string): string => {
+        //     return path.resolve(input, target);
+        // }
 
-        const commonRoot = new protobuf.Root();
-        commonRoot.resolvePath = resolvePath;
+        // const commonRoot = new protobuf.Root();
+        // commonRoot.resolvePath = resolvePath;
 
         // build services
         await findProtoFiles(input, async (filePath) => {
