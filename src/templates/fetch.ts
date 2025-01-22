@@ -1,11 +1,12 @@
 import ejs from 'ejs';
 import {TemplateVariables} from "../type";
 
-const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
-import { JsonDecoder, FromDecoder } from "ts.data.json";
+const template = `<% if(services.length) { %>
+import { FromDecoder } from "ts.data.json";
+import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
+<% } %>
 
 <%- protocOutput %>
-<%- decoders %>
 <% services.forEach(service => { %>
 <% service.methods.forEach(method => { %>
 type <%= method.responseType %>FromDecoder = FromDecoder<typeof <%= method.responseType %>Decoder>;

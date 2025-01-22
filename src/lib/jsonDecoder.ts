@@ -6,7 +6,7 @@ export class JSONDecoderRenderer {
     importedMessages: Map<string, boolean> = new Map<string, boolean>();
     tsCode: string = "";
 
-    constructor(private root: ProtoRoot) {}
+    constructor(private root: ProtoRoot, private withRequiredFields: boolean) {}
 
     generateDecoders(): string {
         this.tsCode = this.processMessageDefinitions(this.root as NestedObject, "");
@@ -69,11 +69,19 @@ export class JSONDecoderRenderer {
             const field = node.fields[fieldName];
 
             let value = this.renderFieldType(field);
+            if (this.withRequiredFields) {
+                value = this.maybeAttachNullable(field, value);
+            }
+
             if (field.repeated) {
                 value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`
             }
 
-            result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`
+            if (this.withRequiredFields) {
+                result += `\n\t\t${convertSnakeToCamel(field.name)}: ${value},`
+            } else {
+                result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`
+            }
         })
 
         return result;
@@ -96,6 +104,14 @@ export class JSONDecoderRenderer {
 
         return "";
     };
+
+    maybeAttachNullable (field:FieldDefinition, value: string): string {
+        if (isIdentifier(field.type) && identifierToDecoder[field.type.value]) {
+            return `JsonDecoder.nullable(${value})`;
+        }
+
+        return value;
+    }
 }
 
 const identifierToDecoder: Record<string, string> = {

@@ -1,5 +1,4 @@
 import { Command as CommanderCommand } from 'commander';
-import * as protobuf from 'protobufjs';
 import debug from 'debug';
 import path from "path";
 import * as protoParser from "proto-parser";
@@ -24,11 +23,13 @@ import {TSModifier} from "../lib/tsModifier";
 const d = debug('run');
 
 type Options = {
-  input: string;
-  output: string;
-  root: string;
-  template?: string;
-  settings?: string;
+    input: string;
+    output: string;
+    root: string;
+    template?: string;
+    withProtocSettings?: string;
+    withJsonDecoder?: boolean;
+    withJsonDecoderRequiredFields?: boolean;
 };
 
 @Implements<CommandProcessor>()
@@ -45,8 +46,9 @@ export class CommandBuild {
             .requiredOption('-o, --output <folder>', 'folder where the compiled files must be created')
             .option('-r, --root <folder>', 'folder where the all proto files are kept')
             .option('-t, --template <file>', 'template file')
-            .option('-s, --settings <settings>', 'protobuf compiler settings')
-            // .option('-y, --yes', 'Use the default')
+            .option('--with-protoc-settings <settings>', 'protobuf compiler settings')
+            .option('--with-json-decoder', 'generate decoders of Json Decoder')
+            .option('--with-json-decoder-required-fields', 'mark all fields required in the json decoder')
             .action((options: Options, command: CommanderCommand) => {
                 return actionCallback({
                     command: this,
@@ -114,7 +116,7 @@ export class CommandBuild {
             return;
         }
 
-        let settings = args.settings ?? "onlyTypes=true";
+        let settings = args.withProtocSettings ?? "onlyTypes=true";
 
         await (async () => {
             try {
@@ -143,13 +145,6 @@ export class CommandBuild {
             }
         })();
 
-        // const resolvePath = (origin: string, target: string): string => {
-        //     return path.resolve(input, target);
-        // }
-
-        // const commonRoot = new protobuf.Root();
-        // commonRoot.resolvePath = resolvePath;
-
         // build services
         await findProtoFiles(input, async (filePath) => {
             const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
@@ -173,25 +168,28 @@ export class CommandBuild {
                             });
                         });
                     } else {
-                        // console.info(`❌ no service definitions in file ${filePath}`);
+                        console.info(`❌ no service definitions in file ${filePath}`);
                     }
 
-                    // this will generate decoders
-                    const jsonDecoder = new JSONDecoderRenderer(ast.root);
-                    let decoders = jsonDecoder.generateDecoders();
+                    let decoders = "";
+                    if (args.withJsonDecoder) {
+                        const jsonDecoder = new JSONDecoderRenderer(ast.root, !!args.withJsonDecoderRequiredFields);
+                        decoders = jsonDecoder.generateDecoders();
 
-                    const importedMessages = jsonDecoder.getImportedMessages();
-                    if (importedMessages.length) {
-                        // this will inject decoder imports
-                        const tsModifier = new TSModifier(protocOutput, filePath);
-                        await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
-                        protocOutput = tsModifier.getCode();
+                        const importedMessages = jsonDecoder.getImportedMessages();
+                        if (importedMessages.length) {
+                            // this will inject decoder imports
+                            const tsModifier = new TSModifier(protocOutput, filePath);
+                            await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
+                            protocOutput = tsModifier.getCode();
+                        }
+
+                        protocOutput = `${protocOutput}\n\n${decoders}`;
                     }
 
                     const fileContent = templateCode.renderTemplate({
                         // data
                         protocOutput,
-                        decoders,
                         services: toTemplateServices(result),
 
                         // paths

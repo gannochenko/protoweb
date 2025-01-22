@@ -2,10 +2,8 @@ import ejs from 'ejs';
 import {TemplateVariables} from "../type";
 
 const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
-import { JsonDecoder } from "ts.data.json";
 
 <%- protocOutput %>
-<%- decoders %>
 <% services.forEach(service => { %>
 <% service.methods.forEach(method => { %>
 /*
