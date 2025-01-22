@@ -7,8 +7,8 @@ import {
 import {ProtoRoot} from "proto-parser";
 import {removePrefix} from "./util";
 
-export function findServiceDefinitions(node: ProtoRoot, results: ServiceDefinition[] = []): ServiceDefinition[] {
-    return findServiceDefinitionsInner(node as NestedObject, results);
+export function findServiceDefinitions(node: ProtoRoot): ServiceDefinition[] {
+    return findServiceDefinitionsInner(node as NestedObject, []);
 }
 
 export function findServiceDefinitionsInner(node: NestedObject, results: ServiceDefinition[] = []): ServiceDefinition[] {

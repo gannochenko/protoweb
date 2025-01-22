@@ -18,7 +18,8 @@ import {findServiceDefinitions} from "../lib/proto";
 import {toTemplateServices} from "../lib/template";
 import {processURLPlaceholders, convertSnakeToCamel, ucFirst} from "../lib/util";
 import {isError} from "../lib/protoASTTypes";
-import {generateDecoders} from "../lib/jsonDecoder";
+import {JSONDecoderRenderer} from "../lib/jsonDecoder";
+import {TSModifier} from "../lib/tsModifier";
 
 const d = debug('run');
 
@@ -160,8 +161,9 @@ export class CommandBuild {
                 if (isError(ast)) {
                     console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, ast.error);
                 } else {
-                    const services: any[] = [];
-                    const result = findServiceDefinitions(ast.root, services);
+                    let protocOutput = await readFileContent(dstPath);
+
+                    const result = findServiceDefinitions(ast.root);
                     if (result.length) {
                         result.forEach(service => {
                             console.log(`👉 ${service.name}: ${filePath} => ${dstPath}`);
@@ -174,11 +176,21 @@ export class CommandBuild {
                         // console.info(`❌ no service definitions in file ${filePath}`);
                     }
 
-                    let decoders = generateDecoders(ast.root, "")
+                    // this will generate decoders
+                    const jsonDecoder = new JSONDecoderRenderer(ast.root);
+                    let decoders = jsonDecoder.generateDecoders();
+
+                    const importedMessages = jsonDecoder.getImportedMessages();
+                    if (importedMessages.length) {
+                        // this will inject decoder imports
+                        const tsModifier = new TSModifier(protocOutput, filePath);
+                        await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
+                        protocOutput = tsModifier.getCode();
+                    }
 
                     const fileContent = templateCode.renderTemplate({
                         // data
-                        protocOutput: await readFileContent(dstPath),
+                        protocOutput,
                         decoders,
                         services: toTemplateServices(result),
 

@@ -2,18 +2,16 @@ import ejs from 'ejs';
 import {TemplateVariables} from "../type";
 
 const template = `import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
-import { JsonDecoder, FromDecoder } from "ts.data.json";
+import { JsonDecoder } from "ts.data.json";
 
 <%- protocOutput %>
 <%- decoders %>
 <% services.forEach(service => { %>
 <% service.methods.forEach(method => { %>
-type <%= method.responseType %>FromDecoder = FromDecoder<typeof <%= method.responseType %>Decoder>;
-
 /*
 <%= method.comment %>
 */
-export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %>FromDecoder | ErrorResponse> {
+export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %> | ErrorResponse> {
   try {
     const response = await fetchWithRetry(\`$\{apiUrl\}<%= processURLPlaceholders(method.url, "request") %>\`, {
       method: "<%= method.verb %>",
@@ -29,7 +27,7 @@ export async function <%= method.name %>(request: <%= method.requestType %>): Pr
       };
     }
 
-    return <%= method.requestType %>Decoder.decodeToPromise(await response.json());
+    return await response.json();
   } catch (error) {
     return {
       error: (error as Error).message,

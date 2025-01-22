@@ -2,88 +2,104 @@ import {convertSnakeToCamel, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot} from "proto-parser";
 import {isBaseType, isEnumDefinition, isIdentifier, isMessageDefinition, NestedObject} from "./protoASTTypes";
 
-export function generateDecoders(node: ProtoRoot, results: string): string {
-    return processMessageDefinitions(node as NestedObject, results)
-}
+export class JSONDecoderRenderer {
+    importedMessages: Map<string, boolean> = new Map<string, boolean>();
+    tsCode: string = "";
 
-export function processMessageDefinitions(node: NestedObject, results: string): string {
-    if (!node) {
-        return results;
+    constructor(private root: ProtoRoot) {}
+
+    generateDecoders(): string {
+        this.tsCode = this.processMessageDefinitions(this.root as NestedObject, "");
+        return this.tsCode;
     }
 
-    if (isMessageDefinition(node)) {
-        results = `${results}\n\n${renderMessage(node)}`;
+    getImportedMessages(): string[] {
+        return Array.from(this.importedMessages.keys());
     }
 
-    if (isEnumDefinition(node)) {
-        results = `${results}\n\n${renderEnum(node)}`;
+    getImportedMessageTypes(): string[] {
+        return this.getImportedMessages().map(message => `${message}Type`);
     }
 
-    if (node.nested) {
-        for (const child in node.nested) {
-            const result = processMessageDefinitions(node.nested[child], "");
-            if (result.length) {
-                results = `${results}${result}`;
+    processMessageDefinitions(node: NestedObject, results: string): string {
+        if (!node) {
+            return results;
+        }
+
+        if (isMessageDefinition(node)) {
+            results = `${results}\n\n${this.renderMessage(node)}`;
+        }
+
+        if (isEnumDefinition(node)) {
+            results = `${results}\n\n${this.renderEnum(node)}`;
+        }
+
+        if (node.nested) {
+            for (const child in node.nested) {
+                const result = this.processMessageDefinitions(node.nested[child], "");
+                if (result.length) {
+                    results = `${results}${result}`;
+                }
             }
         }
+
+        return results
     }
 
-    return results
-}
-
-export const renderMessage = (node: MessageDefinition): string => {
-    return `export const ${node.name}Decoder = JsonDecoder.object(
-    {${renderFields(node)}
+    renderMessage (node: MessageDefinition): string {
+        return `export const ${node.name}Decoder = JsonDecoder.object(
+    {${this.renderFields(node)}
     },
     "${node.name}"
 );`;
-};
+    };
 
-export const renderEnum = (node: EnumDefinition): string => {
-    return `export const ${node.name}Decoder = JsonDecoder.enumeration<${node.name}>(${node.name}, "${node.name}");`;
+    renderEnum (node: EnumDefinition): string {
+        return `export const ${node.name}Decoder = JsonDecoder.enumeration<${node.name}>(${node.name}, "${node.name}");`;
+    }
+
+    renderFields = (node: MessageDefinition): string => {
+        if (!node.fields) {
+            return "";
+        }
+
+        let result = "";
+
+        Object.keys(node.fields).forEach(fieldName => {
+            const field = node.fields[fieldName];
+
+            let value = this.renderFieldType(field);
+            if (field.repeated) {
+                value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`
+            }
+
+            result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`
+        })
+
+        return result;
+    };
+
+    renderFieldType (field: FieldDefinition): string {
+        if (isBaseType(field.type)) {
+            return baseTypeToJSONDecoder[field.type.value];
+        } else if (isIdentifier(field.type)) {
+            if (identifierToDecoder[field.type.value]) {
+                return identifierToDecoder[field.type.value];
+            }
+
+            // if a message has a prefix, it is an imported message
+            const unPrefixedValue = removePrefix(field.type.value);
+            this.importedMessages.set(unPrefixedValue, true);
+
+            return `${ucFirst(convertSnakeToCamel(unPrefixedValue))}Decoder`;
+        }
+
+        return "";
+    };
 }
 
-const renderFields = (node: MessageDefinition): string => {
-    if (!node.fields) {
-        return "";
-    }
-
-    if (node.name === "DateRange") {
-        console.log(node.fields);
-    }
-
-    let result = "";
-
-    Object.keys(node.fields).forEach(fieldName => {
-        const field = node.fields[fieldName];
-
-        let value = renderFieldType(field);
-        if (field.repeated) {
-            value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`
-        }
-
-        result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`
-    })
-
-    return result;
-};
-
-const renderFieldType = (field: FieldDefinition): string => {
-    if (isBaseType(field.type)) {
-        return baseTypeToJSONDecoder[field.type.value];
-    } else if (isIdentifier(field.type)) {
-        if (identifierToDecoder[field.type.value]) {
-            return identifierToDecoder[field.type.value];
-        }
-
-        return `${ucFirst(convertSnakeToCamel(removePrefix(field.type.value)))}Decoder`;
-    }
-
-    return "";
-};
-
 const identifierToDecoder: Record<string, string> = {
-    'google.protobuf.Timestamp': 'JsonDecoder.string.map((stringDate) => new Date(stringDate))',
+    'google.protobuf.Timestamp': 'JsonDecoder.string.map((stringDate) => new Date(stringDate))', // todo: should we check for string validity here?
 };
 
 const baseTypeToJSONDecoder: Record<string, string> = {
