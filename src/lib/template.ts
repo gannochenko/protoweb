@@ -22,6 +22,10 @@ export function toTemplateService(definition: ServiceDefinition): TemplateServic
     Object.keys(definition.methods).forEach(methodName => {
         const method = definition.methods[methodName];
 
+        if (!method.options) {
+            return;
+        }
+
         let verb = "";
         let url = "";
 

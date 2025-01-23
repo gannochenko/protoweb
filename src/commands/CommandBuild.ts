@@ -120,7 +120,7 @@ export class CommandBuild {
 
         await generateProtoFiles(input, output, protoRoot, settings);
         await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields);
-        //await runTemplate();
+        await runTemplate(input, output, protoRoot, templateCode);
 
         d('Executed successfully');
     }
@@ -158,7 +158,7 @@ const generateProtoFiles = async (input: string, output: string, protoRoot: stri
 const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean) => {
     await findFiles(output, async (tsFile) => {
         const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
-        console.log(protoFile+" ============== ");
+        // console.log(protoFile+" ============== ");
 
         const protoContent = await readFileContent(protoFile);
         const ast = protoParser.parse(protoContent, {resolve: false});
@@ -183,7 +183,7 @@ const runTemplate = async (input: string, output: string, protoRoot: string, tem
         const tsFile = getTSFileByProtoFile(output, protoRoot, protoFile);
 
         const protoContent = await readFileContent(protoFile);
-        const ast = protoParser.parse(protoContent);
+        const ast = protoParser.parse(protoContent, {resolve: false});
         if (isError(ast)) {
             console.error(`Error writing service definitions for files "${protoFile}" => "${tsFile}":`, ast.error);
         } else {
@@ -195,7 +195,7 @@ const runTemplate = async (input: string, output: string, protoRoot: string, tem
                     console.log(`👉 ${service.name}: ${protoFile} => ${tsFile}`);
                     Object.keys(service.methods).forEach(methodName => {
                         const method = service.methods[methodName];
-                        // console.log(`   ✅ ${method.name}`);
+                        console.log(`   ✅ ${method.name}`);
                     });
                 });
             } else {

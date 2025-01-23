@@ -237,11 +237,11 @@ export class JSONDecoderRenderer {
     }
 
     traverseMessageDefinition(node: MessageDefinition, prefix = ""): void {
-        if (this.filePath.includes("descriptor")) {
-            if (node.name === "FieldOptions") {
-                console.log(node.fields.ctype);
-            }
-        }
+        // if (this.filePath.includes("descriptor")) {
+        //     if (node.name === "FieldOptions") {
+        //         console.log(node.fields.ctype);
+        //     }
+        // }
 
         const decoder = new MessageDecoder(node, this.withRequiredFields, prefix);
         this.messages.set(decoder.getName(), decoder);
