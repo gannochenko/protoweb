@@ -2,23 +2,37 @@ import {convertSnakeToCamel, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot} from "proto-parser";
 import {isBaseType, isEnumDefinition, isIdentifier, isMessageDefinition, NestedObject} from "./protoASTTypes";
 import {cachedDataVersionTag} from "v8";
+import {Enum} from "protobufjs";
 
-class Decoder {
-    constructor(private node: MessageDefinition, private withRequiredFields: boolean) {
+class MessageDecoder {
+    constructor(private node: MessageDefinition, private withRequiredFields: boolean, private namePrefix: string = "") {
     }
 
     getName(): string {
-        return this.convertFiledNameToDecoderName(this.node.name);
+        const name = this.convertFiledNameToDecoderName(this.node.name);
+        if (this.namePrefix) {
+            return `${this.namePrefix}_${name}`;
+        }
+
+        return name;
     }
 
     getDependencies(): string[] {
+        const nestedElements = this.getNestedElements();
+
         const result: string[] = [];
 
         Object.keys(this.node.fields).forEach(fieldName => {
             const field = this.node.fields[fieldName];
 
             if (isIdentifier(field.type) && !identifierToDecoder[field.type.value]) {
-                const decoderName = this.convertFiledNameToDecoderName(field.type.value);
+                const value = field.type.value;
+
+                let decoderName = this.convertFiledNameToDecoderName(value);
+                if (nestedElements.has(value)) {
+                    decoderName = `${this.getName()}_${decoderName}`;
+                }
+
                 result.push(decoderName);
             }
         });
@@ -41,8 +55,23 @@ class Decoder {
         return result;
     }
 
+    getNestedElements(): Map<string, boolean> {
+        const nestedElements = new Map<string, boolean>();
+
+        if (this.node.nested) {
+            Object.keys(this.node.nested).forEach(nestedName => {
+                const nestedNode = this.node.nested![nestedName];
+                if (isEnumDefinition(nestedNode) || isMessageDefinition(nestedNode)) {
+                    nestedElements.set(nestedNode.name, true);
+                }
+            });
+        }
+
+        return nestedElements;
+    }
+
     render(): string {
-        return `export const ${this.node.name}Decoder = JsonDecoder.object(
+        return `export const ${this.getName()} = JsonDecoder.object(
     {${this.renderFields()}
     },
     "${this.node.name}"
@@ -82,11 +111,20 @@ class Decoder {
         if (isBaseType(field.type)) {
             return baseTypeToJSONDecoder[field.type.value];
         } else if (isIdentifier(field.type)) {
-            if (identifierToDecoder[field.type.value]) {
-                return identifierToDecoder[field.type.value];
+            const value = field.type.value;
+
+            if (identifierToDecoder[value]) {
+                return identifierToDecoder[value];
             }
 
-            return this.convertFiledNameToDecoderName(field.type.value);
+            const nestedElements = this.getNestedElements();
+
+            let name = this.convertFiledNameToDecoderName(value);
+            if (nestedElements.has(value)) {
+                name = `${this.getName()}_${name}`;
+            }
+
+            return name;
         }
 
         return "";
@@ -106,34 +144,69 @@ class Decoder {
     }
 }
 
-export class JSONDecoderRenderer {
-    decoders: Map<string, Decoder> = new Map();
+class EnumDecoder {
+    constructor(private node: EnumDefinition, private namePrefix: string = "") {
+    }
 
-    tsCode: string = "";
+    getName(): string {
+        const name = this.convertFiledNameToDecoderName(this.node.name);
+        if (this.namePrefix) {
+            return `${this.namePrefix}_${name}`;
+        }
+
+        return name;
+    }
+
+    getNamePrefixNoDecoder() {
+        return this.namePrefix.replace("Decoder", "");
+    }
+
+    convertFiledNameToDecoderName(fieldValue: string): string {
+        const unPrefixedValue = removePrefix(fieldValue);
+        return `${ucFirst(convertSnakeToCamel(unPrefixedValue))}Decoder`;
+    }
+
+    render (): string {
+        const prefix = this.getNamePrefixNoDecoder();
+        const typeName = prefix ? `${this.getNamePrefixNoDecoder()}_${this.node.name}` : this.node.name;
+        return `export const ${this.getName()} = JsonDecoder.enumeration<${typeName}>(${typeName}, "${typeName}");`;
+    }
+}
+
+export class JSONDecoderRenderer {
+    messages: Map<string, MessageDecoder> = new Map();
+    enums: Map<string, EnumDecoder> = new Map();
 
     constructor(private root: ProtoRoot, private withRequiredFields: boolean, private filePath: string) {}
 
     generateDecoders(): string {
-        this.tsCode = this.processMessageDefinitions(this.root as NestedObject, "");
+        this.traverse(this.root as NestedObject);
 
-        let decoders = Array.from(this.decoders.values());
+        let messages = this.getMessageDecoders();
         try {
-            decoders = this.reorderDecoders();
+            messages = this.getOrderedMessageDecoders();
         } catch(e) {
             console.warn(`Could not reorder dependencies in file "${this.filePath}". Hope for the best! 🤞`);
         }
 
-        decoders.forEach(decoder => {
-            this.tsCode = `${this.tsCode}\n\n${decoder.render()}`;
+        let enums = this.getEnumDecoders();
+
+        let tsCode = "";
+
+        enums.forEach(enumeration => {
+            tsCode = `${tsCode}\n\n${enumeration.render()}`;
+        });
+        messages.forEach(message => {
+            tsCode = `${tsCode}\n\n${message.render()}`;
         });
 
-        return this.tsCode;
+        return tsCode;
     }
 
     getImportedMessages(): string[] {
         const map = new Map<string, boolean>();
 
-        Array.from(this.decoders.values()).forEach(decoder => {
+        Array.from(this.messages.values()).forEach(decoder => {
             decoder.getImportedTypes().forEach(dependencyName => {
                 map.set(dependencyName, true);
             });
@@ -142,43 +215,60 @@ export class JSONDecoderRenderer {
         return Array.from(map.keys());
     }
 
-    processMessageDefinitions(node: NestedObject, results: string): string {
+    traverse(node: NestedObject, prefix = ""): void {
         if (!node) {
-            return results;
+            return;
         }
 
         if (isMessageDefinition(node)) {
-            if (this.filePath.includes("descriptor")) {
-                if (node.name === "FieldOptions") {
-                    console.log(node.fields.ctype);
-                }
-            }
-
-            const decoder = new Decoder(node, this.withRequiredFields);
-            this.decoders.set(decoder.getName(), decoder);
+            this.traverseMessageDefinition(node, prefix)
         }
 
         if (isEnumDefinition(node)) {
-            results = `${results}\n\n${this.renderEnum(node)}`;
+            const decoder = new EnumDecoder(node, prefix);
+            this.enums.set(decoder.getName(), decoder);
         }
 
         if (node.nested) {
             for (const child in node.nested) {
-                const result = this.processMessageDefinitions(node.nested[child], "");
-                if (result.length) {
-                    results = `${results}${result}`;
-                }
+                this.traverse(node.nested[child], "");
+            }
+        }
+    }
+
+    traverseMessageDefinition(node: MessageDefinition, prefix = ""): void {
+        if (this.filePath.includes("descriptor")) {
+            if (node.name === "FieldOptions") {
+                console.log(node.fields.ctype);
             }
         }
 
-        return results
+        const decoder = new MessageDecoder(node, this.withRequiredFields, prefix);
+        this.messages.set(decoder.getName(), decoder);
+
+        const innerPrefix = decoder.getName();
+
+        if (node.nested) {
+            for (const child in node.nested) {
+                this.traverse(node.nested[child] as NestedObject, innerPrefix);
+            }
+        }
     }
 
     renderEnum (node: EnumDefinition): string {
         return `export const ${node.name}Decoder = JsonDecoder.enumeration<${node.name}>(${node.name}, "${node.name}");`;
     }
 
-    reorderDecoders (): Decoder[] {
+    getEnumDecoders(): EnumDecoder[] {
+        return Array.from(this.enums.values());
+    }
+
+    getMessageDecoders(): MessageDecoder[] {
+        return Array.from(this.messages.values());
+    }
+
+    // khan's algorithm for topological sorting
+    getOrderedMessageDecoders (): MessageDecoder[] {
         const adjList = new Map<string, string[]>();
         const inDegree = new Map<string, number>();
 
@@ -191,15 +281,19 @@ export class JSONDecoderRenderer {
         //     console.log('---------------------------');
         // }
 
-        for (const key of this.decoders.keys()) {
+        for (const key of this.messages.keys()) {
             adjList.set(key, []);
             inDegree.set(key, 0);
         }
 
-        for (const [key, obj] of this.decoders.entries()) {
+        for (const [key, obj] of this.messages.entries()) {
             for (const dependency of obj.getDependencies() || []) {
-                if (!this.decoders.has(dependency)) {
+                if (!this.messages.has(dependency)) {
                     // probably an external dependency, otherwise it is not a valid proto file
+                    continue;
+                }
+                if (this.enums.has(dependency)) {
+                    // enum dependencies aren't needed, enums are listed above messages as they don't have their own dependencies
                     continue;
                 }
                 adjList.get(dependency)!.push(key);
@@ -228,18 +322,17 @@ export class JSONDecoderRenderer {
             }
         }
 
-        if (sortedOrder.length !== this.decoders.size) {
+        if (sortedOrder.length !== this.messages.size) {
             throw new Error("Cycle detected in dependencies");
         }
 
-        const sortedObjects: Decoder[] = [];
+        const sortedObjects: MessageDecoder[] = [];
         for (const key of sortedOrder) {
-            sortedObjects.push(this.decoders.get(key)!);
+            sortedObjects.push(this.messages.get(key)!);
         }
 
         return sortedObjects;
     }
-
 }
 
 const identifierToDecoder: Record<string, string> = {
