@@ -12,7 +12,7 @@ import {
 } from './type';
 import {Application} from '../lib/application';
 import {isCommandAvailable, runCommand} from "../lib/exec";
-import {fileExists, findProtoFiles, folderExists, readFileContent, writeFileContent} from "../lib/fs";
+import {fileExists, findFiles, findProtoFiles, folderExists, readFileContent, writeFileContent} from "../lib/fs";
 import {findServiceDefinitions} from "../lib/proto";
 import {toTemplateServices} from "../lib/template";
 import {processURLPlaceholders, convertSnakeToCamel, ucFirst} from "../lib/util";
@@ -118,98 +118,118 @@ export class CommandBuild {
 
         let settings = args.withProtocSettings ?? "onlyTypes=true";
 
-        await (async () => {
-            try {
-                const findResult = await runCommand('find', [
-                    input,
-                    '-name',
-                    '*.proto',
-                ], options);
-
-                const protoFiles = findResult.stdout.trim().split('\n');
-                if (protoFiles.length === 0) {
-                    console.log('No .proto files found.');
-                    return;
-                }
-
-                await runCommand('protoc', [
-                    '--plugin=protoc-gen-ts_proto=' + (await runCommand('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
-                    `--ts_proto_out=${output}`,
-                    `--ts_proto_opt=${settings}`,
-                    '-I',
-                    protoRoot,
-                    ...protoFiles,
-                ], options);
-            } catch (error: any) {
-                console.error("Error building types:", error);
-            }
-        })();
-
-        // build services
-        await findProtoFiles(input, async (filePath) => {
-            const relativePath = filePath.replace(protoRoot, "").replace(".proto", ".ts");
-            const dstPath = path.join(output, relativePath);
-
-            try {
-                const protoContent = await readFileContent(filePath);
-                const ast = protoParser.parse(protoContent);
-                if (isError(ast)) {
-                    console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, ast.error);
-                } else {
-                    let protocOutput = await readFileContent(dstPath);
-
-                    const result = findServiceDefinitions(ast.root);
-                    if (result.length) {
-                        result.forEach(service => {
-                            console.log(`👉 ${service.name}: ${filePath} => ${dstPath}`);
-                            Object.keys(service.methods).forEach(methodName => {
-                                const method = service.methods[methodName];
-                                // console.log(`   ✅ ${method.name}`);
-                            });
-                        });
-                    } else {
-                        console.info(`❌ no service definitions in file ${filePath}`);
-                    }
-
-                    let decoders = "";
-                    if (args.withJsonDecoder) {
-                        const jsonDecoder = new JSONDecoderRenderer(ast.root, !!args.withJsonDecoderRequiredFields, filePath);
-                        decoders = jsonDecoder.generateDecoders();
-
-                        // this will inject decoder imports
-                        const tsModifier = new TSModifier(protocOutput, filePath);
-                        await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
-                        protocOutput = tsModifier.getCode();
-
-                        protocOutput = `${protocOutput}\n\n${decoders}`;
-                    }
-
-                    const fileContent = templateCode.renderTemplate({
-                        // data
-                        protocOutput,
-                        services: toTemplateServices(result),
-
-                        // paths
-                        sourcePath: filePath,
-                        destinationPath: dstPath,
-
-                        // utils
-                        ejs,
-                        convertSnakeToCamel, // product_id -> productId
-                        processURLPlaceholders,
-                        ucFirst,
-
-                        // etc
-                        ast,
-                    });
-
-                    await writeFileContent(dstPath, fileContent);
-                }
-            } catch (error) {
-                console.error(`Error writing service definitions for files "${filePath}" => "${dstPath}":`, error);
-            }
-        })
+        await generateProtoFiles(input, output, protoRoot, settings);
+        await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields);
+        //await runTemplate();
 
         d('Executed successfully');
     }
 }
+
+const generateProtoFiles = async (input: string, output: string, protoRoot: string, settings: string) => {
+    const options: SpawnOptions = {
+        cwd: process.cwd(),
+    };
+
+    await (async () => {
+        const findResult = await runCommand('find', [
+            input,
+            '-name',
+            '*.proto',
+        ], options);
+
+        const protoFiles = findResult.stdout.trim().split('\n');
+        if (protoFiles.length === 0) {
+            console.log('No .proto files found.');
+            return;
+        }
+
+        await runCommand('protoc', [
+            '--plugin=protoc-gen-ts_proto=' + (await runCommand('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
+            `--ts_proto_out=${output}`,
+            `--ts_proto_opt=${settings}`,
+            '-I',
+            protoRoot,
+            ...protoFiles,
+        ], options);
+    })();
+};
+
+const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean) => {
+    await findFiles(output, async (tsFile) => {
+        const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
+        console.log(protoFile+" ============== ");
+
+        const protoContent = await readFileContent(protoFile);
+        const ast = protoParser.parse(protoContent, {resolve: false});
+        if (isError(ast)) {
+            console.error(`Error parsing file "${protoFile}":`, ast.error);
+        } else {
+            const jsonDecoder = new JSONDecoderRenderer(ast.root, withJsonDecoderRequiredFields, tsFile);
+            const decoders = jsonDecoder.generateDecoders();
+
+            let tsContent = await readFileContent(tsFile);
+            const tsModifier = new TSModifier(tsContent, tsFile);
+            await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
+            tsContent = tsModifier.getCode();
+
+            await writeFileContent(tsFile, tsContent+'\n\n'+decoders+'\n');
+        }
+    });
+};
+
+const runTemplate = async (input: string, output: string, protoRoot: string, templateCode: any) => {
+    await findProtoFiles(input, async (protoFile) => {
+        const tsFile = getTSFileByProtoFile(output, protoRoot, protoFile);
+
+        const protoContent = await readFileContent(protoFile);
+        const ast = protoParser.parse(protoContent);
+        if (isError(ast)) {
+            console.error(`Error writing service definitions for files "${protoFile}" => "${tsFile}":`, ast.error);
+        } else {
+            let protocOutput = await readFileContent(tsFile);
+
+            const result = findServiceDefinitions(ast.root);
+            if (result.length) {
+                result.forEach(service => {
+                    console.log(`👉 ${service.name}: ${protoFile} => ${tsFile}`);
+                    Object.keys(service.methods).forEach(methodName => {
+                        const method = service.methods[methodName];
+                        // console.log(`   ✅ ${method.name}`);
+                    });
+                });
+            } else {
+                console.info(`❌ no service definitions in file ${protoFile}`);
+            }
+
+            const fileContent = templateCode.renderTemplate({
+                // data
+                protocOutput,
+                services: toTemplateServices(result),
+
+                // paths
+                sourcePath: protoFile,
+                destinationPath: tsFile,
+
+                // utils
+                ejs,
+                convertSnakeToCamel, // product_id -> productId
+                processURLPlaceholders,
+                ucFirst,
+
+                // etc
+                ast,
+            });
+
+            await writeFileContent(tsFile, fileContent);
+        }
+    })
+};
+
+const getProtoFileByTSFile = (output: string, protoRoot: string, filePath: string): string => {
+    return path.join(protoRoot, filePath.replace(output, "").replace(".ts", ".proto"));
+};
+
+const getTSFileByProtoFile = (output: string, protoRoot: string, filePath: string): string => {
+    return path.join(output, filePath.replace(protoRoot, "").replace(".proto", ".ts"));
+};

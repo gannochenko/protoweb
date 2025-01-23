@@ -30,7 +30,7 @@ export async function <%= method.name %>(request: <%= method.requestType %>): Pr
       };
     }
 
-    return <%= method.requestType %>Decoder.decodeToPromise(await response.json());
+    return <%= method.responseType %>Decoder.decodeToPromise(await response.json());
   } catch (error) {
     return {
       error: (error as Error).message,

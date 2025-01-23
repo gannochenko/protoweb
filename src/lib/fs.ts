@@ -19,6 +19,25 @@ export async function fileExists(filePath: string): Promise<boolean> {
     }
 }
 
+export async function findFiles(
+    dir: string,
+    callback: (filePath: string) => Promise<void>
+): Promise<void> {
+    const entries = await fs.readdir(dir, {
+        withFileTypes: true,
+    });
+
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+            await findFiles(fullPath, callback);
+        } else if (entry.isFile()) {
+            await callback(fullPath);
+        }
+    }
+}
+
 export async function findProtoFiles(
     dir: string,
     callback: (filePath: string) => Promise<void>

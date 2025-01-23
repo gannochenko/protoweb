@@ -1,6 +1,7 @@
 import {convertSnakeToCamel, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot} from "proto-parser";
 import {isBaseType, isEnumDefinition, isIdentifier, isMessageDefinition, NestedObject} from "./protoASTTypes";
+import {cachedDataVersionTag} from "v8";
 
 class Decoder {
     constructor(private node: MessageDefinition, private withRequiredFields: boolean) {
@@ -115,7 +116,14 @@ export class JSONDecoderRenderer {
     generateDecoders(): string {
         this.tsCode = this.processMessageDefinitions(this.root as NestedObject, "");
 
-        this.reorderDecoders().forEach(decoder => {
+        let decoders = Array.from(this.decoders.values());
+        try {
+            decoders = this.reorderDecoders();
+        } catch(e) {
+            console.warn(`Could not reorder dependencies in file "${this.filePath}". Hope for the best! 🤞`);
+        }
+
+        decoders.forEach(decoder => {
             this.tsCode = `${this.tsCode}\n\n${decoder.render()}`;
         });
 
@@ -140,6 +148,12 @@ export class JSONDecoderRenderer {
         }
 
         if (isMessageDefinition(node)) {
+            if (this.filePath.includes("descriptor")) {
+                if (node.name === "FieldOptions") {
+                    console.log(node.fields.ctype);
+                }
+            }
+
             const decoder = new Decoder(node, this.withRequiredFields);
             this.decoders.set(decoder.getName(), decoder);
         }
@@ -217,10 +231,6 @@ export class JSONDecoderRenderer {
         if (sortedOrder.length !== this.decoders.size) {
             throw new Error("Cycle detected in dependencies");
         }
-
-        // if (this.filePath.includes("v5/product.proto")) {
-        //     console.log(sortedOrder);
-        // }
 
         const sortedObjects: Decoder[] = [];
         for (const key of sortedOrder) {
