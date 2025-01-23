@@ -186,7 +186,7 @@ export class JSONDecoderRenderer {
         try {
             messages = this.getOrderedMessageDecoders();
         } catch(e) {
-            console.warn(`Could not reorder dependencies in file "${this.filePath}". Hope for the best! 🤞`);
+            console.warn(`Could not reorder dependencies in file "${this.filePath}": ${(e as Error).message}. Hope for the best! 🤞`);
         }
 
         let enums = this.getEnumDecoders();
@@ -221,7 +221,7 @@ export class JSONDecoderRenderer {
         }
 
         if (isMessageDefinition(node)) {
-            this.traverseMessageDefinition(node, prefix)
+            return this.traverseMessageDefinition(node, prefix)
         }
 
         if (isEnumDefinition(node)) {
@@ -323,7 +323,7 @@ export class JSONDecoderRenderer {
         }
 
         if (sortedOrder.length !== this.messages.size) {
-            throw new Error("Cycle detected in dependencies");
+            throw new Error("cycle detected in dependencies");
         }
 
         const sortedObjects: MessageDecoder[] = [];
