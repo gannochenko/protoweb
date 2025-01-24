@@ -18,3 +18,11 @@ export const removePrefix = (value: string): string => {
 
     return parts[parts.length - 1];
 };
+
+export const makeJSFriendly = (name: string): string => {
+    if (name === 'Date') { // Date is a name of a built-in type in JS
+        name = 'DateMessage';
+    }
+
+    return name;
+};

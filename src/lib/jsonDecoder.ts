@@ -1,4 +1,4 @@
-import {convertSnakeToCamel, removePrefix, ucFirst} from "./util";
+import {convertSnakeToCamel, makeJSFriendly, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot, ServiceDefinition} from "proto-parser";
 import {
     isBaseType,
@@ -81,7 +81,7 @@ class MessageDecoder {
         return `export const ${this.getName()} = JsonDecoder.object(
     {${this.renderFields()}
     },
-    "${this.node.name}"
+    "${makeJSFriendly(this.node.name)}"
 );`;
     }
 
@@ -138,7 +138,8 @@ class MessageDecoder {
     };
 
     convertFiledNameToDecoderName(fieldValue: string): string {
-        const unPrefixedValue = removePrefix(fieldValue);
+        const unPrefixedValue = makeJSFriendly(removePrefix(fieldValue));
+
         return `${ucFirst(convertSnakeToCamel(unPrefixedValue))}Decoder`;
     }
 
@@ -395,7 +396,6 @@ export class JSONDecoderRenderer {
 
 const identifierToDecoder: Record<string, string> = {
     'google.protobuf.Timestamp': 'JsonDecoder.string.map((stringDate) => { const parsedDate = new Date(stringDate); return isNaN(parsedDate.getTime()) ? null : parsedDate; })',
-    'google.type.Date': 'JsonDecoder.string.map((stringDate) => { const parsedDate = new Date(stringDate); return isNaN(parsedDate.getTime()) ? null : parsedDate; })',
 };
 
 const baseTypeToJSONDecoder: Record<string, string> = {
@@ -415,8 +415,3 @@ const baseTypeToJSONDecoder: Record<string, string> = {
     'string': "JsonDecoder.string",
     'bytes': "JsonDecoder.string",
 };
-
-const convertFiledNameToDecoderName = (fieldValue: string): string => {
-    const unPrefixedValue = removePrefix(fieldValue);
-    return `${ucFirst(convertSnakeToCamel(unPrefixedValue))}Decoder`;
-}
