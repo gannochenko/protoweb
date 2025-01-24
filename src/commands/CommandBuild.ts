@@ -158,7 +158,10 @@ const generateProtoFiles = async (input: string, output: string, protoRoot: stri
 const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean) => {
     await findFiles(output, async (tsFile) => {
         const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
-        // console.log(protoFile+" ============== ");
+
+        if (noDecodersForFiles.some((ignoredPath) => protoFile.includes(ignoredPath))){
+            return;
+        }
 
         const protoContent = await readFileContent(protoFile);
         const ast = protoParser.parse(protoContent, {resolve: false});
@@ -240,3 +243,21 @@ const getProtoFileByTSFile = (output: string, protoRoot: string, filePath: strin
 const getTSFileByProtoFile = (output: string, protoRoot: string, filePath: string): string => {
     return path.join(output, filePath.replace(protoRoot, "").replace(".proto", ".ts"));
 };
+
+const noDecodersForFiles = [
+    "google/protobuf/descriptor.proto",
+    "google/api",
+]
+
+// const noDecodersForFiles = [
+//     "google/protobuf/descriptor.proto",
+//     "google/api",
+// ].map(wildcard => {
+//     const escapeRegExp = (str: string): string => {
+//         return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+//     };
+//
+//     return new RegExp(
+//         "^" + wildcard.split("*").map(escapeRegExp).join(".*") + "$"
+//     );
+// });

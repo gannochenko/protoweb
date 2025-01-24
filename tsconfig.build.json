@@ -10,7 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
-    "noImplicitAny": false, // had to switch this off, due to the HttpAttribute message defined recursively
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,

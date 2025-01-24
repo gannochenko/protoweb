@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import {convertSnakeToCamel, makeJSFriendly, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot, ServiceDefinition} from "proto-parser";
 import {
@@ -8,8 +9,6 @@ import {
     isServiceDefinition, isServiceDefinition2,
     NestedObject
 } from "./protoASTTypes";
-import {cachedDataVersionTag} from "v8";
-import {Enum} from "protobufjs";
 
 class MessageDecoder {
     constructor(private node: MessageDefinition, private withRequiredFields: boolean, private namePrefix: string = "") {
@@ -355,6 +354,7 @@ export class JSONDecoderRenderer {
                     // enum dependencies aren't needed, enums are listed above messages as they don't have their own dependencies
                     continue;
                 }
+
                 adjList.get(dependency)!.push(key);
                 inDegree.set(key, (inDegree.get(key) || 0) + 1);
             }
@@ -382,6 +382,9 @@ export class JSONDecoderRenderer {
         }
 
         if (sortedOrder.length !== this.messages.size) {
+            const diff = _.difference(Array.from(this.messages.keys()), sortedOrder);
+            console.log(diff);
+
             throw new Error("cycle detected in dependencies");
         }
 
