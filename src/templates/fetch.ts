@@ -1,17 +1,22 @@
 import ejs from 'ejs';
 import {TemplateVariables} from "../type";
 
-const template = `<% if(hasAnyServices) { %>
-import { FromDecoder } from "ts.data.json";
+const template = `<%- protocOutput %>
+
+<% if(hasAnyServices) { %>
+type DeepNonUndefined<T> = T extends object
+? {
+  [K in keyof T]: DeepNonUndefined<Exclude<T[K], undefined>>;
+}
+: T;
 <% } %>
 
-<%- protocOutput %>
 <% services.forEach(service => { %>
 <% service.methods.forEach(method => { %>
 /*
 <%= method.comment %>
 */
-export async function <%= method.name %>(request: <%= method.requestType %>): Promise<FromDecoder<typeof <%= method.responseType %>Decoder> | {error: string;}> {
+export async function <%= method.name %>(request: <%= method.requestType %>): Promise<DeepNonUndefined<<%= method.responseType %>> | {error: string;}> {
   try {
     const response = await fetch(\`http://localhost:8000<%= processURLPlaceholders(method.url, "request") %>\`, {
       method: "<%= method.verb %>",
@@ -26,8 +31,11 @@ export async function <%= method.name %>(request: <%= method.requestType %>): Pr
         error: \`Status: $\{response.status\}\`,
       };
     }
+    
+    const data = await response.json();
+    await <%= method.responseType %>Decoder.decodeToPromise(data);
 
-    return <%= method.responseType %>Decoder.decodeToPromise(await response.json());
+    return data as DeepNonUndefined<<%= method.responseType %>>;
   } catch (error) {
     return {
       error: (error as Error).message,

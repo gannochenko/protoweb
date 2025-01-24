@@ -118,6 +118,8 @@ export class CommandBuild {
 
         let settings = args.withProtocSettings ?? "onlyTypes=true";
 
+        console.log(settings);
+        
         await generateProtoFiles(input, output, protoRoot, settings);
         await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields);
         await runTemplate(input, output, protoRoot, templateCode);
