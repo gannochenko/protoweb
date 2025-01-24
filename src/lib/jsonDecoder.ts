@@ -54,7 +54,7 @@ class MessageDecoder {
             const field = this.node.fields[fieldName];
 
             if (isIdentifier(field.type) && !identifierToDecoder[field.type.value]) {
-                const dependencyName = removePrefix(field.type.value);
+                const dependencyName = makeJSFriendly(removePrefix(field.type.value));
                 result.push(dependencyName);
             }
         });

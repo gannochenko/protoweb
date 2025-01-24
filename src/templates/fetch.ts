@@ -1,7 +1,7 @@
 import ejs from 'ejs';
 import {TemplateVariables} from "../type";
 
-const template = `<% if(services.length) { %>
+const template = `<% if(hasAnyServices) { %>
 import { FromDecoder } from "ts.data.json";
 <% } %>
 
