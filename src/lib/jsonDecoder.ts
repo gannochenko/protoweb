@@ -1,4 +1,4 @@
-import _ from 'lodash';
+// import _ from 'lodash';
 import {convertSnakeToCamel, makeJSFriendly, removePrefix, ucFirst} from "./util";
 import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot, ServiceDefinition} from "proto-parser";
 import {
@@ -382,9 +382,8 @@ export class JSONDecoderRenderer {
         }
 
         if (sortedOrder.length !== this.messages.size) {
-            const diff = _.difference(Array.from(this.messages.keys()), sortedOrder);
-            console.log(diff);
-
+            // const diff = _.difference(Array.from(this.messages.keys()), sortedOrder);
+            // console.log(diff);
             throw new Error("cycle detected in dependencies");
         }
 
