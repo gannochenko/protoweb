@@ -20,7 +20,7 @@ import {isError} from "../lib/protoASTTypes";
 import {JSONDecoderRenderer} from "../lib/jsonDecoder";
 import {TSModifier} from "../lib/tsModifier";
 
-const d = debug('run');
+const d = debug('app:build');
 
 type Options = {
     input: string;
@@ -61,6 +61,8 @@ export class CommandBuild {
         application: Application,
         args: Options,
     ) {
+        d("Start the build command");
+
         if (!await folderExists(args.input)) {
             console.error(`Error: folder ${args.input} does not exist.`);
             return;
@@ -103,21 +105,25 @@ export class CommandBuild {
             return;
         }
 
-        const options: SpawnOptions = {
-            cwd: process.cwd(),
-        };
-
         const protoRoot = root ?? input;
 
         const templateCode = require(template ?? "../templates/fetch");
         // @ts-ignore
         if (typeof templateCode.renderTemplate !== "function") {
-            console.error("Error: function renderTemplate() is missing in the template. Define it, and try again.");
+            console.error("Error: function renderTemplate() is missing in the template. Define it and try again.");
             return;
         }
 
         let settings = args.withProtocSettings ?? "onlyTypes=true";
-        
+
+        d("input: "+input);
+        d("output: "+output);
+        d("root: "+root);
+        d("template: "+template);
+        d("with-json-decoder: "+!!args.withJsonDecoder);
+        d("with-json-decoder-required-fields: "+!!args.withJsonDecoderRequiredFields);
+        d("with-protoc-settings: "+settings);
+
         await generateProtoFiles(input, output, protoRoot, settings);
         await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields);
         await runTemplate(input, output, protoRoot, templateCode);
@@ -127,6 +133,8 @@ export class CommandBuild {
 }
 
 const generateProtoFiles = async (input: string, output: string, protoRoot: string, settings: string) => {
+    d('Generating protofiles');
+
     const options: SpawnOptions = {
         cwd: process.cwd(),
     };
@@ -144,6 +152,8 @@ const generateProtoFiles = async (input: string, output: string, protoRoot: stri
             return;
         }
 
+        d("Processing proto files", protoFiles);
+
         await runCommand('protoc', [
             '--plugin=protoc-gen-ts_proto=' + (await runCommand('which', ['protoc-gen-ts_proto'], options)).stdout.trim(),
             `--ts_proto_out=${output}`,
@@ -153,15 +163,22 @@ const generateProtoFiles = async (input: string, output: string, protoRoot: stri
             ...protoFiles,
         ], options);
     })();
+
+    d('Done generating protofiles');
 };
 
 const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean) => {
+    d('Generating decoders');
+
     await findFiles(output, async (tsFile) => {
         const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
 
         if (noDecodersForFiles.some((ignoredPath) => protoFile.includes(ignoredPath))){
+            d("File skipped: "+protoFile);
             return;
         }
+
+        d("Processing file: "+protoFile);
 
         const protoContent = await readFileContent(protoFile);
         const ast = protoParser.parse(protoContent, {resolve: false});
@@ -184,13 +201,21 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
                 }
 
                 await writeFileContent(tsFile, tsModifier.getCode()+'\n\n'+decoders+'\n');
+
+                d("File processed");
         }
     });
+
+    d('Done generating decoders');
 };
 
 const runTemplate = async (input: string, output: string, protoRoot: string, templateCode: any) => {
+    d('Running template');
+
     await findProtoFiles(input, async (protoFile) => {
         const tsFile = getTSFileByProtoFile(output, protoRoot, protoFile);
+
+        d("Processing file: "+protoFile);
 
         const protoContent = await readFileContent(protoFile);
         const ast = protoParser.parse(protoContent, {resolve: false});
@@ -232,8 +257,12 @@ const runTemplate = async (input: string, output: string, protoRoot: string, tem
             });
 
             await writeFileContent(tsFile, fileContent);
+
+            d("File processed");
         }
-    })
+    });
+
+    d('Done running template');
 };
 
 const getProtoFileByTSFile = (output: string, protoRoot: string, filePath: string): string => {
