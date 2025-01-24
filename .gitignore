@@ -88,5 +88,6 @@ temp/
 .idea
 
 generated
+generated_js
 
 dist

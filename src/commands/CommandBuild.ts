@@ -168,12 +168,22 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
             const jsonDecoder = new JSONDecoderRenderer(ast.root, withJsonDecoderRequiredFields, tsFile);
             const decoders = jsonDecoder.generateDecoders();
 
-            let tsContent = await readFileContent(tsFile);
-            const tsModifier = new TSModifier(tsContent, tsFile);
-            await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
-            tsContent = tsModifier.getCode();
+                let tsContent = await readFileContent(tsFile);
+                const tsModifier = new TSModifier(tsContent, tsFile);
 
-            await writeFileContent(tsFile, tsContent+'\n\n'+decoders+'\n');
+                // if (protoFile.includes("v1/product/product")) {
+                //     console.log(jsonDecoder.getImportedMessages());
+                // }
+
+                await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
+                tsContent = tsModifier.getCode();
+
+                if (jsonDecoder.hasDecoders()) {
+                    await tsModifier.injectImports();
+                    tsContent = tsModifier.getCode();
+                }
+
+                await writeFileContent(tsFile, tsContent+'\n\n'+decoders+'\n');
         }
     });
 };

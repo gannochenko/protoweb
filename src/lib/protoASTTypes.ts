@@ -3,6 +3,7 @@ import {
     EnumDefinition,
     Identifier,
     MessageDefinition,
+    ServiceDefinition as ServiceDefinition2,
     ProtoError,
     SyntaxType
 } from "proto-parser";
@@ -30,6 +31,10 @@ export type ServiceDefinition = {
 };
 
 export const isServiceDefinition = (node: any): node is ServiceDefinition => {
+    return node.syntaxType === SyntaxType.ServiceDefinition;
+};
+
+export const isServiceDefinition2 = (node: any): node is ServiceDefinition2 => {
     return node.syntaxType === SyntaxType.ServiceDefinition;
 };
 

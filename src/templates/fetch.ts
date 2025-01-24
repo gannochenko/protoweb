@@ -9,12 +9,10 @@ import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
 <%- protocOutput %>
 <% services.forEach(service => { %>
 <% service.methods.forEach(method => { %>
-type <%= method.responseType %>FromDecoder = FromDecoder<typeof <%= method.responseType %>Decoder>;
-
 /*
 <%= method.comment %>
 */
-export async function <%= method.name %>(request: <%= method.requestType %>): Promise<<%= method.responseType %>FromDecoder | ErrorResponse> {
+export async function <%= method.name %>(request: <%= method.requestType %>): Promise<FromDecoder<typeof <%= method.responseType %>Decoder> | ErrorResponse> {
   try {
     const response = await fetchWithRetry(\`$\{apiUrl\}<%= processURLPlaceholders(method.url, "request") %>\`, {
       method: "<%= method.verb %>",

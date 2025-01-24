@@ -1,6 +1,13 @@
 import {convertSnakeToCamel, removePrefix, ucFirst} from "./util";
-import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot} from "proto-parser";
-import {isBaseType, isEnumDefinition, isIdentifier, isMessageDefinition, NestedObject} from "./protoASTTypes";
+import {EnumDefinition, FieldDefinition, MessageDefinition, ProtoRoot, ServiceDefinition} from "proto-parser";
+import {
+    isBaseType,
+    isEnumDefinition,
+    isIdentifier,
+    isMessageDefinition,
+    isServiceDefinition, isServiceDefinition2,
+    NestedObject
+} from "./protoASTTypes";
 import {cachedDataVersionTag} from "v8";
 import {Enum} from "protobufjs";
 
@@ -176,11 +183,23 @@ class EnumDecoder {
 export class JSONDecoderRenderer {
     messages: Map<string, MessageDecoder> = new Map();
     enums: Map<string, EnumDecoder> = new Map();
+    extraDependencies: Map<string, boolean> = new Map();
+    parsed: false;
 
     constructor(private root: ProtoRoot, private withRequiredFields: boolean, private filePath: string) {}
 
+    hasDecoders(): boolean {
+        if (!this.parsed) {
+            this.traverse(this.root as NestedObject);
+        }
+
+        return this.messages.size > 0 || this.enums.size > 0;
+    }
+
     generateDecoders(): string {
-        this.traverse(this.root as NestedObject);
+        if (!this.parsed) {
+            this.traverse(this.root as NestedObject);
+        }
 
         let messages = this.getMessageDecoders();
         try {
@@ -212,7 +231,12 @@ export class JSONDecoderRenderer {
             });
         });
 
-        return Array.from(map.keys());
+        // if (this.filePath.includes("v1/product")) {
+        //     console.log(this.filePath);
+        //     console.log(map);
+        // }
+
+        return [...Array.from(map.keys()), ...Array.from(this.extraDependencies.keys())];
     }
 
     traverse(node: NestedObject, prefix = ""): void {
@@ -227,6 +251,10 @@ export class JSONDecoderRenderer {
         if (isEnumDefinition(node)) {
             const decoder = new EnumDecoder(node, prefix);
             this.enums.set(decoder.getName(), decoder);
+        }
+
+        if (isServiceDefinition2(node)) {
+            return this.traverseServiceDefinition(node);
         }
 
         if (node.nested) {
@@ -251,6 +279,36 @@ export class JSONDecoderRenderer {
         if (node.nested) {
             for (const child in node.nested) {
                 this.traverse(node.nested[child] as NestedObject, innerPrefix);
+            }
+        }
+    }
+
+    traverseServiceDefinition(node: ServiceDefinition): void {
+        // if (this.filePath.includes("descriptor")) {
+        //     if (node.name === "FieldOptions") {
+        //         console.log(node.fields.ctype);
+        //     }
+        // }
+
+        // look for google.protobuf.Empty
+        Object.keys(node.methods).forEach(key => {
+            const method = node.methods[key];
+
+            if (isIdentifier(method.responseType)) {
+                const value = method.responseType.value;
+                if (identifierToDecoder[value]) {
+                    return;
+                }
+
+                let name = ucFirst(convertSnakeToCamel(removePrefix(value)));
+
+                this.extraDependencies.set(name, true);
+            }
+        });
+
+        if (node.nested) {
+            for (const child in node.nested) {
+                this.traverse(node.nested[child] as NestedObject, "");
             }
         }
     }
@@ -356,3 +414,8 @@ const baseTypeToJSONDecoder: Record<string, string> = {
     'string': "JsonDecoder.string",
     'bytes': "JsonDecoder.string",
 };
+
+const convertFiledNameToDecoderName = (fieldValue: string): string => {
+    const unPrefixedValue = removePrefix(fieldValue);
+    return `${ucFirst(convertSnakeToCamel(unPrefixedValue))}Decoder`;
+}
