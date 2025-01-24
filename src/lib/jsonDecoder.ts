@@ -395,6 +395,7 @@ export class JSONDecoderRenderer {
 
 const identifierToDecoder: Record<string, string> = {
     'google.protobuf.Timestamp': 'JsonDecoder.string.map((stringDate) => { const parsedDate = new Date(stringDate); return isNaN(parsedDate.getTime()) ? null : parsedDate; })',
+    'google.type.Date': 'JsonDecoder.string.map((stringDate) => { const parsedDate = new Date(stringDate); return isNaN(parsedDate.getTime()) ? null : parsedDate; })',
 };
 
 const baseTypeToJSONDecoder: Record<string, string> = {
