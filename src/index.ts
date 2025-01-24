@@ -3,7 +3,7 @@
 import debug from 'debug';
 import { Application } from './lib/application';
 
-const d = debug('app');
+const d = debug('app:');
 
 const app = new Application();
 app.run().catch(error => {
