@@ -3,7 +3,6 @@ import {TemplateVariables} from "../type";
 
 const template = `<% if(services.length) { %>
 import { FromDecoder } from "ts.data.json";
-import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
 <% } %>
 
 <%- protocOutput %>
@@ -12,9 +11,9 @@ import { fetchWithRetry, ErrorResponse, apiUrl } from "../../../util/fetch";
 /*
 <%= method.comment %>
 */
-export async function <%= method.name %>(request: <%= method.requestType %>): Promise<FromDecoder<typeof <%= method.responseType %>Decoder> | ErrorResponse> {
+export async function <%= method.name %>(request: <%= method.requestType %>): Promise<FromDecoder<typeof <%= method.responseType %>Decoder> | {error: string;}> {
   try {
-    const response = await fetchWithRetry(\`$\{apiUrl\}<%= processURLPlaceholders(method.url, "request") %>\`, {
+    const response = await fetch(\`http://localhost:8000<%= processURLPlaceholders(method.url, "request") %>\`, {
       method: "<%= method.verb %>",
       headers: {
         "Content-Type": "application/json",
@@ -40,5 +39,16 @@ export async function <%= method.name %>(request: <%= method.requestType %>): Pr
 `;
 
 export const renderTemplate = (data: TemplateVariables): string => {
-    return ejs.render(template, data);
+    let hasAnyServices = false;
+    for(let i = 0; i < data.services.length; i++) {
+        if (data.services[i].methods.length) {
+            hasAnyServices = true;
+            break;
+        }
+    }
+
+    return ejs.render(template, {
+        ...data,
+        hasAnyServices,
+    });
 };

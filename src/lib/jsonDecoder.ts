@@ -184,7 +184,7 @@ export class JSONDecoderRenderer {
     messages: Map<string, MessageDecoder> = new Map();
     enums: Map<string, EnumDecoder> = new Map();
     extraDependencies: Map<string, boolean> = new Map();
-    parsed: false;
+    parsed = false;
 
     constructor(private root: ProtoRoot, private withRequiredFields: boolean, private filePath: string) {}
 

@@ -1,16 +1,13 @@
 import ts, {ImportClause, ImportSpecifier, NodeArray, TransformationContext} from "typescript";
 
 export class TSModifier {
-    constructor(private tsCode: string, private filePath: string) {}
+    private ast: ts.SourceFile;
 
-    async injectDecodersForTypes(types: string[]) {
-        // if (this.filePath.includes("v5/product.proto")) {
-            const printer = ts.createPrinter();
-            this.tsCode = printer.printFile(this.injectDecoderImports(this.parseSnippetToAST(this.tsCode), types));
-        // }
+    constructor(tsCode: string, private filePath: string) {
+        this.ast = this.parseSnippetToAST(tsCode);
     }
 
-    injectDecoderImports(ast: ts.SourceFile, types: string[]): ts.SourceFile {
+    injectExternalDecoderImports(types: string[]) {
         const transformer: (context: TransformationContext) => (sourceFile: ts.SourceFile) => (ts.Node & undefined) | ts.SourceFile = context => {
             return sourceFile => {
                 const visitor = (node: ts.Node): ts.Node => {
@@ -62,13 +59,11 @@ export class TSModifier {
             };
         };
 
-        const result = ts.transform(ast, [transformer]);
-        return result.transformed[0] as ts.SourceFile;
+        const result = ts.transform(this.ast, [transformer]);
+        this.ast = result.transformed[0] as ts.SourceFile;
     }
 
-    injectImports() {
-        const ast = this.parseSnippetToAST(this.tsCode);
-
+    injectJsonDecodeImport() {
         const newImport = ts.factory.createImportDeclaration(
             undefined,
             ts.factory.createImportClause(
@@ -83,14 +78,15 @@ export class TSModifier {
 
         const updatedStatements = ts.factory.createNodeArray([
             newImport,
-            ...ast.statements,
+            ...this.ast.statements,
         ]);
 
-        return ts.factory.updateSourceFile(ast, updatedStatements);
+        this.ast = ts.factory.updateSourceFile(this.ast, updatedStatements);
     }
 
     getCode(): string {
-        return this.tsCode;
+        const printer = ts.createPrinter();
+        return printer.printFile(this.ast);
     }
 
     parseSnippetToAST(code: string): ts.SourceFile {

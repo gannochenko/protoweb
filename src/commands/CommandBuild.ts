@@ -175,15 +175,12 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
                 //     console.log(jsonDecoder.getImportedMessages());
                 // }
 
-                await tsModifier.injectDecodersForTypes(jsonDecoder.getImportedMessages());
-                tsContent = tsModifier.getCode();
-
+                await tsModifier.injectExternalDecoderImports(jsonDecoder.getImportedMessages());
                 if (jsonDecoder.hasDecoders()) {
-                    await tsModifier.injectImports();
-                    tsContent = tsModifier.getCode();
+                    await tsModifier.injectJsonDecodeImport();
                 }
 
-                await writeFileContent(tsFile, tsContent+'\n\n'+decoders+'\n');
+                await writeFileContent(tsFile, tsModifier.getCode()+'\n\n'+decoders+'\n');
         }
     });
 };
