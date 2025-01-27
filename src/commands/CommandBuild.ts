@@ -173,12 +173,15 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
     await findFiles(output, async (tsFile) => {
         const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
 
+        d("Processing file: "+tsFile+" => "+protoFile);
+        if (!await fileExists(protoFile)) {
+            throw new Error(`File was not found: "${protoFile}" (mapped from "${tsFile}")`);
+        }
+
         if (noDecodersForFiles.some((ignoredPath) => protoFile.includes(ignoredPath))){
             d("File skipped: "+protoFile);
             return;
         }
-
-        d("Processing file: "+protoFile);
 
         const protoContent = await readFileContent(protoFile);
         const ast = protoParser.parse(protoContent, {resolve: false});
