@@ -171,6 +171,11 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
     d('Generating decoders');
 
     await findFiles(output, async (tsFile) => {
+        if (!tsFile.endsWith(".ts")) {
+            d(`File skipped: "${protoFile}" (non-typescript)`);
+            return;
+        }
+
         const protoFile = getProtoFileByTSFile(output, protoRoot, tsFile);
 
         d("Processing file: "+tsFile+" => "+protoFile);
