@@ -172,7 +172,7 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
 
     await findFiles(output, async (tsFile) => {
         if (!tsFile.endsWith(".ts")) {
-            d(`File skipped: "${protoFile}" (non-typescript)`);
+            d(`File skipped: "${tsFile}" (non-typescript)`);
             return;
         }
 
@@ -184,7 +184,7 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
         }
 
         if (noDecodersForFiles.some((ignoredPath) => protoFile.includes(ignoredPath))){
-            d("File skipped: "+protoFile);
+            d(`File skipped: "${tsFile}" (ignored)`);
             return;
         }
 
