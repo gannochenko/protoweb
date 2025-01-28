@@ -321,6 +321,10 @@ The structure of data is the following:
     ejs: typeof ejs; // an instance of ejs, so there is no need to import it in a template
     sourcePath: string; // path to the source proto file
     destinationPath: string; // path to the destination typescript file
+    convertSnakeToCamel: (input: string) => string; // a helper that converts snake to camel
+    processURLPlaceholders: (url: string, prefix: string) => string; // a helper that converts and escapes placeholders in URLs, such as /{foo}/{bar}/{baz}
+    ucFirst: (input: string) => string; // a helper that uppercases the first letter
+    ast: object; // a deeply nested structure that contains an AST of the corresponding protofile (just in case if you need it, which I doubt to be honest)
 }
 ~~~
 
@@ -364,6 +368,11 @@ Features supported:
 * optional/required fields.
 
 </Container>
+
+Decoders will be attached to the value of the `protocOutput` variable. Import statements will be modified in order to import
+decoders that come from other files. `JsonDecoder` will also be imported.
+
+If messages are not declared in the right order in the protobuf file, decoders will be, because otherwise TypeScript throws an error that a variable was used before initialized.
 
 ## Commands
 
