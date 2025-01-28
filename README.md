@@ -51,6 +51,7 @@
 - [Commands](#commands)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
+- [Gotchas](#gotchas)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -342,14 +343,14 @@ Note, that `protocOutput` must be present in the template file, and __should not
                     <li>-o &lt;path&gt; - output folder</li>
                     <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
-                    <li>-s &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
+                    <li>--with-protoc-settings &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
                 </ul>
             </td>
         </tr>
     </tbody>
 </table>
 
-Specify `-r` only when you wish to compile only part of the proto files in a project. The builder still needs to know the root folder, because there could be imports inside.
+👉 Specify `-r` only when you wish to compile only part of the proto files in a project. The builder still needs to know the root folder, because there could be imports inside.
 
 Example:
 
@@ -361,9 +362,17 @@ Type `protoweb -h` to find out about all available commands.
 
 ## Troubleshooting
 
-Q: The builder says "❌ no service definitions in file", but I am sure there are definitions
+Q: I see errors such as "Error parsing file XYZ: Error: illegal name '}'".
 
-A: Check if there are methods that have "option (google.api.http)" empty. Apparently, the underlying compiler consider this illegal syntax. There must be a verb and a path defined correctly. 
+A: Look into the failing protobuf files, check if you have empty annotations such as `option (google.api.http) = {}`. Either remove them or fill it in, otherwise the protobuf parser Protoweb uses considers this illegal syntax 😕.
+
+Q: Why do all my 64-based numbers get converted to strings all of a sudden?
+
+A: Protoweb converts all 64-based numbers to `string`, because it's unsafe to convert them to `number`, and you probably don't want any extra library for managing long numbers in your bundle. Use 32-based numbers instead.
+
+## Gotchas
+
+todo
 
 ## Roadmap
 

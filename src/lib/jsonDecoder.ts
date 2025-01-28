@@ -11,6 +11,8 @@ import {
 } from "./protoASTTypes";
 
 class MessageDecoder {
+    private forceOptional = new Map<string, boolean>();
+
     constructor(private node: MessageDefinition, private withRequiredFields: boolean, private namePrefix: string = "") {
     }
 
@@ -76,6 +78,10 @@ class MessageDecoder {
         return nestedElements;
     }
 
+    markFieldAsForceOptional(fieldName: string) {
+        this.forceOptional.set(fieldName, true);
+    }
+
     render(): string {
         return `export const ${this.getName()} = JsonDecoder.object(
     {${this.renderFields()}
@@ -100,13 +106,13 @@ class MessageDecoder {
             }
 
             if (field.repeated) {
-                value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`
+                value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`;
             }
 
-            if (this.withRequiredFields) {
-                result += `\n\t\t${convertSnakeToCamel(field.name)}: ${value},`
+            if (!this.withRequiredFields || this.forceOptional.has(field.name)) {
+                result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`;
             } else {
-                result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`
+                result += `\n\t\t${convertSnakeToCamel(field.name)}: ${value},`;
             }
         })
 
@@ -266,8 +272,8 @@ export class JSONDecoderRenderer {
 
     traverseMessageDefinition(node: MessageDefinition, prefix = ""): void {
         // if (this.filePath.includes("descriptor")) {
-        //     if (node.name === "FieldOptions") {
-        //         console.log(node.fields.ctype);
+        //     if (node.name === "TableSelection") {
+        //         console.log(node);
         //     }
         // }
 
@@ -279,6 +285,15 @@ export class JSONDecoderRenderer {
         if (node.nested) {
             for (const child in node.nested) {
                 this.traverse(node.nested[child] as NestedObject, innerPrefix);
+            }
+        }
+
+        if (node.oneofs) {
+            for (const oneof in node.oneofs) {
+                const definition = node.oneofs[oneof];
+                for (const field in definition.oneof) {
+                    decoder.markFieldAsForceOptional(definition.oneof[field]);
+                }
             }
         }
     }
@@ -311,10 +326,6 @@ export class JSONDecoderRenderer {
                 this.traverse(node.nested[child] as NestedObject, "");
             }
         }
-    }
-
-    renderEnum (node: EnumDefinition): string {
-        return `export const ${node.name}Decoder = JsonDecoder.enumeration<${node.name}>(${node.name}, "${node.name}");`;
     }
 
     getEnumDecoders(): EnumDecoder[] {
