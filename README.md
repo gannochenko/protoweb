@@ -43,15 +43,18 @@
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-    - [Installation to a different folder](#installation-to-a-different-folder)
-    - [Upgrading](#upgrading)
+    - [Installation to a Different Folder](#installation-to-a-different-folder)
+        - [Upgrading](#upgrading)
 - [Usage](#usage)
     - [Example](#example)
     - [Templating Mechanism](#templating-mechanism)
+    - [Json Decoder](#json-decoder)
 - [Commands](#commands)
 - [Troubleshooting](#troubleshooting)
-- [Roadmap](#roadmap)
+    - [Optional and Mandatory Fields](#optional-and-mandatory-fields)
+- [Best Practices](#best-practices)
 - [Gotchas](#gotchas)
+- [Roadmap](#roadmap)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -323,6 +326,45 @@ The structure of data is the following:
 
 Note, that `protocOutput` must be present in the template file, and __should not be escaped__.
 
+### Json Decoder
+
+Protoweb supports generation of [JsonDecoders](https://www.npmjs.com/package/ts.data.json). While TypeScript gives static type safety, JsonDecoers implement runtime safety: if an actual
+response from the server comes malformed, an exception will be thrown.
+
+Basically, what Protoweb does is - for every message Foo it creates a complimentary Decoder, that mirrors the structure of that message.
+Example:
+
+~~~proto
+message ProductResponse {
+  string sku = 1;
+  int32 quantity = 2;
+}
+~~~
+
+will be converted to:
+
+~~~javascript
+export const ProductResponseDecoder = JsonDecoder.object(
+    {
+		sku: JsonDecoder.optional(JsonDecoder.string),
+        quantity: JsonDecoder.optional(JsonDecoder.number),
+    },
+    "ProductResponse"
+);
+~~~
+
+Features supported:
+
+<Container>
+
+* regular messages,
+* nested messages (but please don't use them),
+* oneOf,
+* enums,
+* optional/required fields.
+
+</Container>
+
 ## Commands
 
 <table width="100%">
@@ -344,6 +386,8 @@ Note, that `protocOutput` must be present in the template file, and __should not
                     <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
                     <li>--with-protoc-settings &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
+                    <li>--with-json-decoder - enables generation of Json Decoders</li>
+                    <li>--with-json-decoder-required-fields - makes all fields non-optional in Json Decoders</li>
                 </ul>
             </td>
         </tr>
@@ -366,13 +410,53 @@ Q: I see errors such as "Error parsing file XYZ: Error: illegal name '}'".
 
 A: Look into the failing protobuf files, check if you have empty annotations such as `option (google.api.http) = {}`. Either remove them or fill it in, otherwise the protobuf parser Protoweb uses considers this illegal syntax 😕.
 
-Q: Why do all my 64-based numbers get converted to strings all of a sudden?
+Q: Why do all my 64-based numbers get converted to `string` all of a sudden?
 
 A: Protoweb converts all 64-based numbers to `string`, because it's unsafe to convert them to `number`, and you probably don't want any extra library for managing long numbers in your bundle. Use 32-based numbers instead.
 
+### Optional and mandatory fields
+
+By default, all fields in Json Decoders will have `JsonDecoder.optional()` wrapper. This is reasonable, because Protobuf `syntax3` (which we all should follow)
+clearly states, that all fields are optional. However, this leads to use of bothersome `optional chaining operator (?.)` of JavaScript. Also, the decoders will be not strict enough.
+
+If you trust your server that it populates all the fields in the responses, you can use the `--with-json-decoder-required-fields` option. Protoweb then will do its
+best to declare fields as non-optional. However, there are exceptions:
+
+<Container>
+
+* field that is a part of the oneOf statement is always optional,
+* fields that are annotated with `@protoweb: optional` comment in the protobuf will be rendered as optional,
+* dates will be still nullable, no matter what (since they are being transferred as strings, and that string can be an invalid ISO date).
+
+</Container>
+
+## Best practices
+
+1. Avoid declaring recursive messages. Protoweb can't generate decoders in such cases.
+2. Avoid nested messages (even though they are supported, it's a mess).
+3. Avoid 64-based int64, uint64, float64, etc. They will be converted to type `String`, because they cannot be represented as type `Number` in JavaScript. You will have to use BigInt or some LongAr library otherwise. Just avoid these types, this is not what you want.
+
 ## Gotchas
 
-todo
+1. Normally you only need decoders for responses, because you don't trust your own fellow server. However, currently Protoweb generates decoders for __all__ messages it was able to find. This happens because otherwise we would need to analyze the declaration of services first, then make a dependency
+   tree and shake off all un-involved messages. Then build decoders on the rest. This functionality is 100% feasible to build, it's just not there yet. Please use tree shaking on your end, otherwise some unwanted stuff may sneak into your bundle.
+2. When specifying `--with-json-decoder-required-fields` all basic fields in types will still be mandatory and object fields will have ` | undefined` modifier. Currently I can't do much about it, but you can use the following type modifier in your template:
+   ~~~typescript
+   type DeepNonUndefined<T> = T extends object
+        ? {
+            [K in keyof T]: DeepNonUndefined<Exclude<T[K], undefined>>;
+          }
+        : T;
+    
+    type DeepReplaceDateWithNullable<T> = T extends Date
+        ? Date | null // Replace Date with Date | null
+        : T extends object // Check if it's an object or array
+            ? {
+                [K in keyof T]: DeepReplaceDateWithNullable<T[K]>;
+              }
+            : T;
+   ~~~
+   And then do `return data as DeepNonUndefined<DeepReplaceDateWithNullable<ProductResponse>>`.
 
 ## Roadmap
 

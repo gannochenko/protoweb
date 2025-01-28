@@ -117,9 +117,9 @@ class MessageDecoder {
                 }
             }
 
-            const allFieldOptional = !this.withRequiredFields;
+            const allFieldsOptional = !this.withRequiredFields;
 
-            if (allFieldOptional || this.forceOptional.has(field.name) || hints.find(hint => hint === "optional")) {
+            if (allFieldsOptional || this.forceOptional.has(field.name) || hints.find(hint => hint === "optional")) {
                 result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`;
             } else {
                 result += `\n\t\t${convertSnakeToCamel(field.name)}: ${value},`;
