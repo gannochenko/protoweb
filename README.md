@@ -350,7 +350,7 @@ will be converted to:
 ~~~javascript
 export const ProductResponseDecoder = JsonDecoder.object(
     {
-		sku: JsonDecoder.optional(JsonDecoder.string),
+        sku: JsonDecoder.optional(JsonDecoder.string),
         quantity: JsonDecoder.optional(JsonDecoder.number),
     },
     "ProductResponse"
@@ -364,8 +364,7 @@ Features supported:
 * regular messages,
 * nested messages (but please don't use them),
 * oneOf,
-* enums,
-* optional/required fields.
+* enums.
 
 </Container>
 
