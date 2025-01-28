@@ -109,7 +109,17 @@ class MessageDecoder {
                 value = `JsonDecoder.array(${value}, "arrayOf${ucFirst(convertSnakeToCamel(field.name))}")`;
             }
 
-            if (!this.withRequiredFields || this.forceOptional.has(field.name)) {
+            let hints: string[] = [];
+            if (field.comment) {
+                const match = field.comment.match(/(?<=@protoweb:\s).*/);
+                if (match?.length) {
+                    hints = match[0].split(",").map(hint => hint.trim());
+                }
+            }
+
+            const allFieldOptional = !this.withRequiredFields;
+
+            if (allFieldOptional || this.forceOptional.has(field.name) || hints.find(hint => hint === "optional")) {
                 result += `\n\t\t${convertSnakeToCamel(field.name)}: JsonDecoder.optional(${value}),`;
             } else {
                 result += `\n\t\t${convertSnakeToCamel(field.name)}: ${value},`;
