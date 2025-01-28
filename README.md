@@ -342,7 +342,7 @@ Note, that `protocOutput` must be present in the template file, and __should not
                     <li>-o &lt;path&gt; - output folder</li>
                     <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
-                    <li>-s &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true"</i></li>
+                    <li>-s &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
                 </ul>
             </td>
         </tr>

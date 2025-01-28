@@ -114,7 +114,7 @@ export class CommandBuild {
             return;
         }
 
-        let settings = args.withProtocSettings ?? "onlyTypes=true";
+        let settings = args.withProtocSettings ?? "onlyTypes=true,forceLong=string";
 
         d("input: "+input);
         d("output: "+output);
