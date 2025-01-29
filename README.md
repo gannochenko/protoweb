@@ -396,6 +396,7 @@ If messages are not declared in the right order in the protobuf file, decoders w
                     <li>--with-protoc-settings &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
                     <li>--with-json-decoder - enables generation of Json Decoders</li>
                     <li>--with-json-decoder-required-fields - makes all fields non-optional in Json Decoders</li>
+                    <li>--with-json-decoder-ignore-files &lt;patterns&gt; - a comma-separated list of wildcards of file names for which the decoders won't be generated</li>
                 </ul>
             </td>
         </tr>
@@ -450,12 +451,12 @@ best to declare fields as non-optional. However, there are exceptions:
    tree and shake off all un-involved messages. Then build decoders on the rest. This functionality is 100% feasible to build, it's just not there yet. Please use tree shaking on your end, otherwise some unwanted stuff may sneak into your bundle.
 2. When specifying `--with-json-decoder-required-fields` all basic fields in types will still be mandatory and object fields will have ` | undefined` modifier. Currently I can't do much about it, but you can use the following type modifier in your template:
    ~~~typescript
-   type DeepNonUndefined<T> = T extends object
-        ? {
-            [K in keyof T]: DeepNonUndefined<Exclude<T[K], undefined>>;
-          }
+   type DeepNonUndefined<T> = T extends Date
+    ? T
+    : T extends object
+        ? { [K in keyof T]: DeepNonUndefined<Exclude<T[K], undefined>> }
         : T;
-    
+
     type DeepReplaceDateWithNullable<T> = T extends Date
         ? Date | null // Replace Date with Date | null
         : T extends object // Check if it's an object or array
@@ -469,6 +470,11 @@ best to declare fields as non-optional. However, there are exceptions:
 ## Roadmap
 
 * Bugfixing :)
+* Generate JsonDecoders only for responses, because the rest is just dead code basically.
+* Replace protoc with a custom renderer, specifically tailored for the needs of Protoweb. If we have it, we can get rid of those ugly TypeScript deep type modifiers.
+
+### Done
+
 * Support for additional tooling such as [JsonDecoder](https://www.npmjs.com/package/ts.data.json).
   This is a debatable feature, because usually Backend we run is a trusted entity. However, TS definitions only provide static checks, we may want to have some runtime checks in place as well in case we make requests to third-party services.
   This is a doable task, yet a tricky one: the Protobuf AST must be compiled into AST of JsonDecoder, and then to a schema of JsonDecoder. There could be a lot of edge cases to cover down the road.
