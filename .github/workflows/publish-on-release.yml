@@ -26,6 +26,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run Jest tests
+        run: npm test
+
       - name: Sync version with release tag
         run: npm version $(echo ${GITHUB_REF##*/} | sed 's/^v//') --no-git-tag-version
 

@@ -19,6 +19,7 @@ import {processURLPlaceholders, convertSnakeToCamel, ucFirst} from "../lib/util"
 import {isError} from "../lib/protoASTTypes";
 import {JSONDecoderRenderer} from "../lib/jsonDecoder";
 import {TSModifier} from "../lib/tsModifier";
+import {matchesWildcard} from "../lib/matchesWildcard";
 
 const d = debug('app:build');
 
@@ -29,6 +30,7 @@ type Options = {
     template?: string;
     withProtocSettings?: string;
     withJsonDecoder?: boolean;
+    withJsonDecoderIgnoreFiles?: string;
     withJsonDecoderRequiredFields?: boolean;
 };
 
@@ -48,6 +50,7 @@ export class CommandBuild {
             .option('-t, --template <file>', 'template file')
             .option('--with-protoc-settings <settings>', 'protobuf compiler settings')
             .option('--with-json-decoder', 'generate decoders of Json Decoder')
+            .option('--with-json-decoder-ignore-files <patterns>', 'skip Json Decoder generation for the files')
             .option('--with-json-decoder-required-fields', 'mark all fields required in the json decoder')
             .action((options: Options, command: CommanderCommand) => {
                 return actionCallback({
@@ -116,16 +119,26 @@ export class CommandBuild {
 
         let settings = args.withProtocSettings ?? "onlyTypes=true,forceLong=string";
 
+        let withJsonDecoderIgnoreFiles: string[] = [];
+        if (args.withJsonDecoderIgnoreFiles?.length) {
+            withJsonDecoderIgnoreFiles = args.withJsonDecoderIgnoreFiles.split(',').map(pattern => pattern.trim());
+        }
+
+        const withJsonDecoder = !!args.withJsonDecoder;
+
         d("input: "+input);
         d("output: "+output);
         d("root: "+root);
         d("template: "+template);
-        d("with-json-decoder: "+!!args.withJsonDecoder);
+        d("with-json-decoder:", withJsonDecoder);
+        d("with-json-decoder-ignore-files:", withJsonDecoderIgnoreFiles);
         d("with-json-decoder-required-fields: "+!!args.withJsonDecoderRequiredFields);
         d("with-protoc-settings: "+settings);
 
         await generateProtoFiles(input, output, protoRoot, settings);
-        await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields);
+        if (withJsonDecoder) {
+            await generateDecoders(output, protoRoot, !!args.withJsonDecoderRequiredFields, withJsonDecoderIgnoreFiles);
+        }
         await runTemplate(input, output, protoRoot, templateCode);
 
         d('Executed successfully');
@@ -167,7 +180,7 @@ const generateProtoFiles = async (input: string, output: string, protoRoot: stri
     d('Done generating protofiles');
 };
 
-const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean) => {
+const generateDecoders = async (output: string, protoRoot: string, withJsonDecoderRequiredFields: boolean, withJsonDecoderIgnoreFiles: string[] = []) => {
     d('Generating decoders');
 
     await findFiles(output, async (tsFile) => {
@@ -183,9 +196,11 @@ const generateDecoders = async (output: string, protoRoot: string, withJsonDecod
             throw new Error(`File was not found: "${protoFile}" (mapped from "${tsFile}")`);
         }
 
-        if (noDecodersForFiles.some((ignoredPath) => protoFile.includes(ignoredPath))){
-            d(`File skipped: "${tsFile}" (ignored)`);
-            return;
+        if (withJsonDecoderIgnoreFiles.length) {
+            if (matchesWildcard(protoFile, withJsonDecoderIgnoreFiles)) {
+                d(`File skipped: "${tsFile}" (ignored)`);
+                return;
+            }
         }
 
         const protoContent = await readFileContent(protoFile);
@@ -280,21 +295,3 @@ const getProtoFileByTSFile = (output: string, protoRoot: string, filePath: strin
 const getTSFileByProtoFile = (output: string, protoRoot: string, filePath: string): string => {
     return path.join(output, filePath.replace(protoRoot, "").replace(".proto", ".ts"));
 };
-
-const noDecodersForFiles = [
-    "google/protobuf/descriptor.proto",
-    "google/api",
-]
-
-// const noDecodersForFiles = [
-//     "google/protobuf/descriptor.proto",
-//     "google/api",
-// ].map(wildcard => {
-//     const escapeRegExp = (str: string): string => {
-//         return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-//     };
-//
-//     return new RegExp(
-//         "^" + wildcard.split("*").map(escapeRegExp).join(".*") + "$"
-//     );
-// });
