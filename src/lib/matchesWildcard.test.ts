@@ -20,5 +20,6 @@ describe('Wildcard Matching', () => {
 
         expect(matchesWildcard("/foo/bar/baz/google/protobuf/descriptor.proto", patterns)).toBe(true);
         expect(matchesWildcard("/foo/bar/baz/google/api/descriptor.proto", patterns)).toBe(true);
+        expect(matchesWildcard("/Users/s.gannochenko/proj/pocs-demos-katas/faceblur/protobuf/websocket/payload/client/v1/client.proto", patterns)).toBe(false);
     });
 });
