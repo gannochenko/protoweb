@@ -393,7 +393,7 @@ If messages are not declared in the right order in the protobuf file, decoders w
                     <li>-o &lt;path&gt; - output folder</li>
                     <li>-r &lt;path&gt; - root folder where all proto files are stored</li>
                     <li>-t &lt;template&gt; - template file</li>
-                    <li>--with-protoc-settings &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string"</i></li>
+                    <li>--with-protoc-settings &lt;settings&gt; - <a href="https://www.npmjs.com/package/ts-proto">settings for ts-proto</a>. Default <i>"onlyTypes=true,forceLong=string,stringEnums=true"</i></li>
                     <li>--with-json-decoder - enables generation of Json Decoders</li>
                     <li>--with-json-decoder-required-fields - makes all fields non-optional in Json Decoders</li>
                     <li>--with-json-decoder-ignore-files &lt;patterns&gt; - a comma-separated list of wildcards of file names for which the decoders won't be generated</li>

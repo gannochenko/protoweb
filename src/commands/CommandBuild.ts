@@ -117,7 +117,7 @@ export class CommandBuild {
             return;
         }
 
-        let settings = args.withProtocSettings ?? "onlyTypes=true,forceLong=string";
+        let settings = args.withProtocSettings ?? "onlyTypes=true,forceLong=string,stringEnums=true";
 
         let withJsonDecoderIgnoreFiles: string[] = [];
         if (args.withJsonDecoderIgnoreFiles?.length) {
